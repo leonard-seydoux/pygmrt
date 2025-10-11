@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+The plan MUST include and satisfy the following gates:
+
+- Code Quality: Define lint/format tools and static/type checks to run in CI. Note any planned
+  complexity hotspots and justify with mitigation.
+- Testing Standards: Identify required tests (unit, integration, e2e). Specify coverage target (>=80%)
+  and critical paths that MUST be tested.
+- UX Consistency: List user-facing surfaces impacted (CLI/API/UI). Confirm naming, messages, and error
+  handling align with project conventions and document any deprecations/migrations.
+- Performance Requirements: Provide explicit performance budgets (latency/throughput/memory/etc.).
+  Describe how they will be measured (automated benchmark or manual methodology) before merge.
 
 ## Project Structure
 

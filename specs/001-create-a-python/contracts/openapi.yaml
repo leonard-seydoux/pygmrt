@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: pygmrt tile download
+  version: 0.1.0
+paths:
+  /download:
+    post:
+      summary: Download GMRT tiles for one or more bounding boxes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bboxes:
+                  oneOf:
+                    - $ref: "#/components/schemas/BoundingBox"
+                    - type: array
+                      items:
+                        $ref: "#/components/schemas/BoundingBox"
+                format:
+                  type: string
+                  enum: [geotiff, png]
+                  default: geotiff
+                resolution:
+                  type: string
+                  enum: [low, medium, high]
+                  default: medium
+                destination:
+                  type: string
+                overwrite:
+                  type: string
+                  enum: [skip, overwrite]
+                  default: skip
+              required: [bboxes, destination]
+      responses:
+        "200":
+          description: Download manifest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadResult"
+        "400":
+          description: Invalid input
+components:
+  schemas:
+    BoundingBox:
+      type: object
+      properties:
+        minLon: { type: number }
+        minLat: { type: number }
+        maxLon: { type: number }
+        maxLat: { type: number }
+      required: [minLon, minLat, maxLon, maxLat]
+    ManifestEntry:
+      type: object
+      properties:
+        path: { type: string }
+        format: { type: string, enum: [geotiff, png] }
+        coverage:
+          $ref: "#/components/schemas/BoundingBox"
+        size_bytes: { type: integer }
+        status: { type: string, enum: [created, reused] }
+      required: [path, format, coverage, status]
+    DownloadResult:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManifestEntry"
+        stats:
+          type: object
+          properties:
+            count_created: { type: integer }
+            count_reused: { type: integer }
+      required: [entries]

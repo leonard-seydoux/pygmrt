@@ -5,6 +5,13 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Non-Functional Requirements (Constitution) *(mandatory)*
+
+- Code Quality: [lint/format tools, static/type check level, complexity constraints]
+- Testing: [coverage target (>=80%), required test types per story, flaky test policy]
+- UX Consistency: [user-facing contract expectations, naming/terminology, error model]
+- Performance Budgets: [latency/throughput/memory targets, measurement approach]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -113,3 +120,10 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+
+### Quality Gates Evidence
+
+- Lint/format and static/type checks: [evidence/links]
+- Test coverage results: [report/threshold met]
+- UX contract review: [link to docs or checklist]
+- Performance validation: [benchmark results or manual measurements]
