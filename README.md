@@ -38,7 +38,7 @@ print(result.count_created, "files created")
 ```
 
 Notes:
-- Existing files are reused when `overwrite="skip"` (default).
+- Existing files are reused when `overwrite=False` (default).
 - Network tests are skipped by default; enable with `-m network` in pytest.
 
 ## La Réunion example (GMRT, GeoTIFF)
@@ -55,4 +55,4 @@ result = download_tiles(
 print(result.entries[0].path)
 ```
 
-Tip: if you encounter a corrupt or partial file (e.g. after an interrupted run), set `overwrite="overwrite"` to force a fresh download.
+Tip: if you encounter a corrupt or partial file (e.g. after an interrupted run), set `overwrite=True` to force a fresh download.

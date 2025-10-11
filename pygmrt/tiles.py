@@ -24,14 +24,14 @@ from pathlib import Path
 from time import sleep
 import requests
 
+# Service endpoints
 GMRT_BASE_URL = "https://www.gmrt.org/services/GridServer"
 OPENTOPO_BASE_URL = "https://portal.opentopography.org/API/globaldem"
 
-
+# Type aliases for clarity
 Format = Literal["geotiff", "png"]
 Provider = Literal["gmrt", "opentopo"]
 Resolution = Literal["low", "medium", "high"]
-Overwrite = Literal["skip", "overwrite"]
 
 
 class BoundingBox(TypedDict):
@@ -65,7 +65,7 @@ def download_tiles(
     dest: str,
     format: Format = "geotiff",
     resolution: Resolution = "medium",
-    overwrite: Overwrite = "skip",
+    overwrite: bool = False,
     provider: Provider = "gmrt",
 ) -> DownloadResult:
     """Download GMRT tiles for one bbox or a batch of bboxes.
@@ -76,7 +76,7 @@ def download_tiles(
         dest: Destination directory to write files.
         format: Output format: "geotiff" (default) or "png".
         resolution: Named resolution level: "low", "medium" (default), "high".
-        overwrite: "skip" (default) to reuse existing files, or "overwrite".
+    overwrite: If False (default), reuse existing files. If True, force re-download.
 
     Returns:
         DownloadResult with manifest entries and counts.
@@ -120,7 +120,7 @@ def download_tiles(
             )
             dest_file = dest_path / fname
             # Reuse if skip and exists
-            if dest_file.exists() and overwrite == "skip":
+            if dest_file.exists() and not overwrite:
                 size = dest_file.stat().st_size
                 result.entries.append(
                     ManifestEntry(
@@ -221,13 +221,13 @@ def _download_stream(
     timeout: float = 30.0,
     retries: int = 3,
     backoff: float = 0.5,
-    overwrite: Overwrite = "skip",
+    overwrite: bool = False,
 ) -> int:
     """Download a URL to dest_file atomically, streaming to avoid large buffers.
 
-    Returns size in bytes. Reuses existing file when overwrite='skip'.
+    Returns size in bytes. Reuses existing file when overwrite is False.
     """
-    if dest_file.exists() and overwrite == "skip":
+    if dest_file.exists() and not overwrite:
         return dest_file.stat().st_size
 
     tmp = dest_file.with_suffix(dest_file.suffix + ".part")

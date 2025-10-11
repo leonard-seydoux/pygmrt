@@ -19,7 +19,7 @@ specified target (>=80%) and must not regress on changed files.
 - Include exact file paths in descriptions
 
 ## Path Conventions
-- Single project: `src/`, `tests/` at repository root
+- Single project: `pygmrt/`, `tests/` at repository root
 
 ---
 
@@ -27,13 +27,13 @@ specified target (>=80%) and must not regress on changed files.
 
 **Purpose**: Project initialization and basic structure
 
-- [X] T001 Create source folders: `src/pygmrt/` and tests: `tests/unit/`, `tests/integration/`
-- [X] T002 [P] Create package init: `src/pygmrt/__init__.py` exporting `__version__ = "0.1.0"`
+- [X] T001 Create source folders: `pygmrt/` and tests: `tests/unit/`, `tests/integration/`
+- [X] T002 [P] Create package init: `pygmrt/__init__.py` exporting `__version__ = "0.1.0"`
 - [X] T003 Add `pyproject.toml` with minimal package metadata, dependencies (`requests`), and tools (ruff, black, mypy, pytest)
 - [X] T004 [P] Add `ruff` and `black` configuration (pyproject sections) and ensure formatting rules
 - [X] T005 [P] Configure `mypy` (strict on public API) in `pyproject.toml`
 - [X] T006 [P] Add `README.md` top-level with brief description and link to Quickstart
-- [X] T007 Create module file: `src/pygmrt/tiles.py` (empty skeleton with docstring)
+- [X] T007 Create module file: `pygmrt/tiles.py` (empty skeleton with docstring)
 - [X] T008 Add `tests/__init__.py` and `tests/unit/__init__.py` to ensure package discovery
 
 ---
@@ -42,12 +42,12 @@ specified target (>=80%) and must not regress on changed files.
 
 **Purpose**: Core helpers and validation required by all stories
 
-- [X] T009 Implement bbox validation helper in `src/pygmrt/tiles.py` (lon/lat ranges; min<max; allow antimeridian flag)
-- [X] T010 [P] Implement antimeridian split helper in `src/pygmrt/tiles.py` returning 1–2 longitudinal ranges
-- [X] T011 [P] Define deterministic filename scheme function in `src/pygmrt/tiles.py` (include format, bbox/tile indices)
-- [X] T012 [P] Add manifest entry/result dataclasses in `src/pygmrt/tiles.py` per data-model.md
-- [X] T013 Implement HTTP download stream helper in `src/pygmrt/tiles.py` with timeouts/retries and temp-file + atomic rename
-- [X] T014 [P] Define GMRT base endpoint/URL template constant(s) in `src/pygmrt/tiles.py`
+- [X] T009 Implement bbox validation helper in `pygmrt/tiles.py` (lon/lat ranges; min<max; allow antimeridian flag)
+- [X] T010 [P] Implement antimeridian split helper in `pygmrt/tiles.py` returning 1–2 longitudinal ranges
+- [X] T011 [P] Define deterministic filename scheme function in `pygmrt/tiles.py` (include format, bbox/tile indices)
+- [X] T012 [P] Add manifest entry/result dataclasses in `pygmrt/tiles.py` per data-model.md
+- [X] T013 Implement HTTP download stream helper in `pygmrt/tiles.py` with timeouts/retries and temp-file + atomic rename
+- [X] T014 [P] Define GMRT base endpoint/URL template constant(s) in `pygmrt/tiles.py`
 - [X] T015 Wire project lint/type/format checks via `pyproject.toml` (ensure `ruff`, `black`, `mypy`, `pytest` run locally)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
@@ -68,11 +68,11 @@ specified target (>=80%) and must not regress on changed files.
 
 ### Implementation for User Story 1
 
-- [X] T019 [US1] Implement `download_tiles(bbox, dest, format="geotiff", resolution="medium", overwrite="skip", bboxes=None)` core happy path in `src/pygmrt/tiles.py`
+- [X] T019 [US1] Implement `download_tiles(bbox, dest, format="geotiff", resolution="medium", overwrite=False, bboxes=None)` core happy path in `pygmrt/tiles.py`
 - [X] T020 [P] [US1] Input validation + error messages (invalid bbox, unwritable dest) in `src/pygmrt/tiles.py`
-- [X] T021 [P] [US1] Implement tile selection for bbox and call streaming downloader in `src/pygmrt/tiles.py`
-- [X] T022 [US1] Build manifest entries and return `DownloadResult` in `src/pygmrt/tiles.py`
-- [X] T023 [US1] Reuse existing files when `overwrite="skip"`; ensure no partial files remain on errors
+- [X] T021 [P] [US1] Implement tile selection for bbox and call streaming downloader in `pygmrt/tiles.py`
+- [X] T022 [US1] Build manifest entries and return `DownloadResult` in `pygmrt/tiles.py`
+- [X] T023 [US1] Reuse existing files when `overwrite=False`; ensure no partial files remain on errors
 
 **Checkpoint**: User Story 1 independently functional and testable (MVP)
 

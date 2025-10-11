@@ -19,11 +19,11 @@ print(result)
 
 - format: "geotiff" (default) or "png"
 - resolution: "low", "medium" (default), "high"
-- overwrite: "skip" (default) or "overwrite"
+- overwrite: False (default) or True
 - bboxes: pass a list of bboxes for batch downloads
 
 ## Notes
 
 - If bbox crosses the antimeridian, the function auto-splits the download ranges.
-- Existing files are reused when overwrite="skip".
+- Existing files are reused when overwrite=False.
 - Network tests may be opt-in in CI to avoid flakiness.

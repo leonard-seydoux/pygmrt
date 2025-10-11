@@ -11,7 +11,7 @@ Build a minimal Python package with a single primary entry point that downloads 
 bounding box (and optional batch), supporting output formats GeoTIFF (default) and PNG, and named
 resolution levels (low/medium/high). Keep file and function count low while delivering a complete flow
 including validation, deterministic file naming, manifest return, and resumable runs (reuse existing
-files when overwrite=skip).
+files when overwrite=False).
 
 ## Technical Context
 
@@ -45,7 +45,7 @@ The plan includes these gates and passes with no waivers:
 - Testing Standards: Target >=80% coverage; unit tests for validation, naming, manifest; integration
   test for a small bbox (opt-in marker to avoid flaky CI). No merges on red tests.
 - UX Consistency: Public API function `download_tiles(bbox, dest, format='geotiff', resolution='medium',
-  overwrite='skip', bboxes=None)` with clear parameter names and actionable errors.
+  overwrite=False, bboxes=None)` with clear parameter names and actionable errors.
 - Performance Requirements: Budget as above; measure via wall-clock timing for a fixed bbox; ensure
   streaming downloads and reuse existing files to minimize unnecessary work.
 
