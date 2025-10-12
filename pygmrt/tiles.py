@@ -154,6 +154,40 @@ def download_tiles(
     return result
 
 
+def get_path(result: DownloadResult) -> Path:
+    """Return the first existing GeoTIFF Path from a DownloadResult.
+
+    Scans manifest entries in order and returns the first path whose status is
+    "created" or "reused", whose file exists, and whose extension is .tif/.tiff.
+
+    Parameters
+    ----------
+    result : DownloadResult
+        The result object returned by download_tiles.
+
+    Returns
+    -------
+    pathlib.Path
+        The first matching GeoTIFF path.
+
+    Raises
+    ------
+    RuntimeError
+        If no matching GeoTIFF file is found among the entries.
+    """
+    for e in result.entries:
+        p = Path(e.path)
+        if (
+            e.status in ("created", "reused")
+            and p.exists()
+            and p.suffix.lower() in (".tif", ".tiff")
+        ):
+            return p
+    raise RuntimeError(
+        "No GeoTIFF found in result. Check API availability or parameters."
+    )
+
+
 def _validate_bbox(bbox: Sequence[float]) -> Tuple[float, float, float, float]:
     """Validate a bounding box.
 
