@@ -100,7 +100,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": "gallery",  # Output directory for gallery
     "filename_pattern": "/plot_",  # Match files starting with 'plot_'
     "ignore_pattern": r"__init__\.py|conf\.py",
-    "plot_gallery": True,   # Execute examples to generate thumbnails
+    "plot_gallery": True,  # Execute examples to generate thumbnails
     "download_all_examples": False,
     "show_memory": False,
     "expected_failing_examples": [],
