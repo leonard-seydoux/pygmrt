@@ -21,4 +21,4 @@ htmlcov/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-**/.tif
+**/*.tif
