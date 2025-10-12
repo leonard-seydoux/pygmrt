@@ -6,10 +6,8 @@ given bounding box or a batch of bounding boxes.
 Notes
 -----
 - Main entry point: :func:`download_tiles`.
-- Providers supported: ``gmrt`` (no API key) and ``opentopo`` (requires
-    an API key via the ``OPENTOPO_API_KEY`` environment variable).
-- Formats supported: ``geotiff`` (GMRT GridServer, OpenTopography). PNG is not
-    currently supported by GMRT GridServer in this package.
+- Provider: GMRT GridServer only (no API key required).
+- Formats supported: ``geotiff``. PNG is not currently supported by GMRT GridServer.
 - Antimeridian crossing is handled by splitting longitude ranges automatically.
 """
 
@@ -31,19 +29,17 @@ import requests
 
 # Service endpoints
 GMRT_BASE_URL = "https://www.gmrt.org/services/GridServer"
-OPENTOPO_BASE_URL = "https://portal.opentopography.org/API/globaldem"
 
 # Type aliases for clarity
-Format = Literal["geotiff", "png"]
-Provider = Literal["gmrt", "opentopo"]
+Format = Literal["geotiff"]
 Resolution = Literal["low", "medium", "high"]
 
 
 class BoundingBox(TypedDict):
-    minLon: float
-    minLat: float
-    maxLon: float
-    maxLat: float
+    west: float
+    south: float
+    east: float
+    north: float
 
 
 @dataclass
@@ -70,27 +66,25 @@ def download_tiles(
     format: Format = "geotiff",
     resolution: Resolution = "medium",
     overwrite: bool = False,
-    provider: Provider = "gmrt",
 ) -> DownloadResult:
     """Download tiles for a single bounding box.
 
     Parameters
     ----------
     bbox : sequence of float, optional
-        Bounding box in WGS84 degrees as ``[minLon, minLat, maxLon, maxLat]``.
+        Bounding box in WGS84 degrees as ``[west, south, east, north]``.
         Must be provided.
     dest : str
         Destination directory path where files will be written. Created if
         needed.
-    format : {"geotiff", "png"}, default "geotiff"
-        Output format. For ``provider='gmrt'``, only ``"geotiff"`` is supported.
+    format : {"geotiff"}, default "geotiff"
+        Output format. GMRT GridServer supports GeoTIFF here.
     resolution : {"low", "medium", "high"}, default "medium"
         Named resolution level; mapped internally to provider-specific datasets.
     overwrite : bool, default False
         If ``False``, reuse existing files. If ``True``, force re-download.
-    provider : {"gmrt", "opentopo"}, default "gmrt"
-        Source provider. ``gmrt`` uses the GridServer; ``opentopo`` uses Global
-        DEM API.
+    provider : removed
+        Single provider (GMRT) by design.
 
     Returns
     -------
@@ -109,11 +103,11 @@ def download_tiles(
     """
     # Validate bbox presence
     if bbox is None:
-        raise ValueError("Provide bbox as [minLon, minLat, maxLon, maxLat]")
+        raise ValueError("Provide bbox as [west, south, east, north]")
 
     # Validate format
-    if format not in ("geotiff", "png"):
-        raise ValueError("Unsupported format. Supported: 'geotiff', 'png'")
+    if format not in ("geotiff",):
+        raise ValueError("Unsupported format. Supported: 'geotiff'")
 
     # Validate resolution
     if resolution not in ("low", "medium", "high"):
@@ -132,15 +126,15 @@ def download_tiles(
         # For simplicity, one URL per longitude range covering the full latitude span
         for i, (lon_a, lon_b) in enumerate(lon_ranges):
             coverage = BoundingBox(
-                minLon=lon_a, minLat=min_lat, maxLon=lon_b, maxLat=max_lat
+                west=lon_a, south=min_lat, east=lon_b, north=max_lat
             )
             # Build URL
             url = _build_url(
-                lon_a, min_lat, lon_b, max_lat, format, resolution, provider
+                lon_a, min_lat, lon_b, max_lat, format, resolution
             )
             # Determine filename
             fname = _safe_filename(
-                provider, format, (lon_a, min_lat, lon_b, max_lat)
+                "gmrt", format, (lon_a, min_lat, lon_b, max_lat)
             )
             dest_file = dest_path / fname
             # Reuse if skip and exists
@@ -187,22 +181,22 @@ def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
     Parameters
     ----------
     b : sequence of float
-        Bounding box as ``[minLon, minLat, maxLon, maxLat]`` in degrees.
+        Bounding box as ``[west, south, east, north]`` in degrees.
 
     Returns
     -------
     tuple of float
-        The validated bbox as ``(minLon, minLat, maxLon, maxLat)`` with floats.
+        The validated bbox as ``(west, south, east, north)`` with floats.
 
     Raises
     ------
     ValueError
-        If the bbox length is not 4, latitude/longitude values are out of range,
-        or ``minLat >= maxLat``.
+    If the bbox length is not 4, latitude/longitude values are out of range,
+    or ``south >= north``.
     """
     if len(b) != 4:
         raise ValueError(
-            "bbox must be a sequence of 4 numbers: [minLon, minLat, maxLon, maxLat]"
+            "bbox must be a sequence of 4 numbers: [west, south, east, north]"
         )
     min_lon, min_lat, max_lon, max_lat = map(float, b)
     if not (-180.0 <= min_lon <= 180.0 and -180.0 <= max_lon <= 180.0):
@@ -210,7 +204,7 @@ def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
     if not (-90.0 <= min_lat <= 90.0 and -90.0 <= max_lat <= 90.0):
         raise ValueError("latitude values must be in [-90, 90]")
     if min_lat >= max_lat:
-        raise ValueError("minLat must be < maxLat")
+        raise ValueError("south must be < north")
     # Antimeridian allowed (min_lon may be > max_lon) handled by split helper
     return min_lon, min_lat, max_lon, max_lat
 
@@ -228,7 +222,7 @@ def _split_antimeridian(
     Returns
     -------
     list of tuple of float
-        One or two ranges ``[(minLon, maxLon), ...]`` depending on whether the
+        One or two ranges ``[(west, east), ...]`` depending on whether the
         interval crosses the antimeridian.
     """
     if min_lon <= max_lon:
@@ -245,10 +239,10 @@ def _safe_filename(
     ----------
     prefix : str
         Filename prefix, typically the provider name.
-    fmt : {"geotiff", "png"}
+    fmt : {"geotiff"}
         Output format determining the file extension.
     rng : tuple of float
-        Bounding box as ``(minLon, minLat, maxLon, maxLat)``.
+        Bounding box as ``(west, south, east, north)``.
 
     Returns
     -------
@@ -256,7 +250,7 @@ def _safe_filename(
         Filename with fixed decimal precision and appropriate extension.
     """
     min_lon, min_lat, max_lon, max_lat = rng
-    ext = "tif" if fmt == "geotiff" else "png"
+    ext = "tif"
     # Keep predictable precision to avoid overly long names
     return f"{prefix}_{min_lon:.3f}_{min_lat:.3f}_{max_lon:.3f}_{max_lat:.3f}.{ext}"
 
@@ -402,7 +396,6 @@ def _build_url(
     max_lat: float,
     fmt: Format,
     res: Resolution,
-    provider: Provider,
 ) -> str:
     """Construct a provider-specific data URL for a bounding box.
 
@@ -410,12 +403,12 @@ def _build_url(
     ----------
     min_lon, min_lat, max_lon, max_lat : float
         Bounding box edges in degrees.
-    fmt : {"geotiff", "png"}
+    fmt : {"geotiff"}
         Desired output format.
     res : {"low", "medium", "high"}
         Named resolution level used for provider mapping.
-    provider : {"gmrt", "opentopo"}
-        Which provider to target.
+    provider : removed
+        Single provider (GMRT) by design.
 
     Returns
     -------
@@ -428,47 +421,10 @@ def _build_url(
         If unsupported format/provider combinations are requested or an unknown
         provider is supplied.
     """
-    if provider == "gmrt":
-        # GMRT GridServer (no API key). Supports GeoTIFF via west/east/south/north.
-        if fmt != "geotiff":
-            raise ValueError(
-                "GMRT provider currently supports only 'geotiff' format"
-            )
-        return f"{GMRT_BASE_URL}?format=geotiff&west={min_lon}&east={max_lon}&south={min_lat}&north={max_lat}"
-    if provider == "opentopo":
-        # OpenTopography Global DEM API requires a dataset name and bounds.
-        # Map our named resolution to a dataset. Defaults chosen for broad coverage.
-        dataset = _opentopo_dataset_for(res)
-        if fmt != "geotiff":
-            raise ValueError(
-                "OpenTopography provider only supports 'geotiff' format"
-            )
-        # Note: OpenTopography expects south, north, west, east
-        url = (
-            f"{OPENTOPO_BASE_URL}?demtype={dataset}&south={min_lat}&north={max_lat}&west={min_lon}&east={max_lon}"
-            f"&outputFormat=GTiff"
-        )
-        api_key = os.getenv("OPENTOPO_API_KEY")
-        if api_key:
-            url += f"&API_Key={api_key}"
-        return url
-    raise ValueError(f"Unknown provider: {provider}")
+    # GMRT GridServer (no API key). Supports GeoTIFF via west/east/south/north.
+    if fmt != "geotiff":
+        raise ValueError("GMRT supports only 'geotiff' format")
+    return f"{GMRT_BASE_URL}?format=geotiff&west={min_lon}&east={max_lon}&south={min_lat}&north={max_lat}"
 
 
-def _opentopo_dataset_for(res: Resolution) -> str:
-    """Map resolution names to OpenTopography dataset identifiers.
-
-    Notes
-    -----
-    Mapping used currently:
-
-    - ``low`` -> ``SRTM15_PLUS`` (15 arc-second global topo-bathy)
-    - ``medium`` -> ``SRTMGL3`` (3 arc-second ~90 m global SRTM)
-    - ``high`` -> ``SRTMGL1`` (1 arc-second ~30 m; may be restricted in regions)
-    """
-    mapping = {
-        "low": "SRTM15_PLUS",
-        "medium": "SRTMGL3",
-        "high": "SRTMGL1",
-    }
-    return mapping[res]
+# OpenTopography support removed: single-provider (GMRT) by design.

@@ -17,6 +17,7 @@ dependencies = [
   "pytest>=8.4.2",
   "rasterio>=1.4.3",
   "requests>=2.31.0",
+  "ruff>=0.14.0",
   "typing-extensions>=4.7.0; python_version<'3.12'",
 ]
 classifiers = [
