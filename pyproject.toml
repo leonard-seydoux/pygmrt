@@ -55,5 +55,11 @@ markers = [
   "network: marks tests that require network access (deselect with '-m not network')",
 ]
 
-[tool.uv.dependencies.dev]
-pygmrt = { path = ".", develop = true }
+[project.optional-dependencies]
+docs = [
+  "sphinx>=7.3",
+  "pydata-sphinx-theme>=0.15.0",
+  "myst-parser>=2.0.0",
+  "sphinx-autodoc-typehints>=2.1.0",
+  "linkify-it-py>=2.0.0",
+]
