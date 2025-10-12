@@ -13,19 +13,12 @@ Notes
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import (
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-)
 import os
+import requests
+from dataclasses import dataclass, field
 from pathlib import Path
 from time import sleep
-import requests
+from typing import List, Literal, Sequence, Tuple, TypedDict
 
 # Service endpoints
 GMRT_BASE_URL = "https://www.gmrt.org/services/GridServer"
