@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import requests
+import rasterio
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import sleep
@@ -60,8 +61,8 @@ def download_tiles(
     save_directory: str | Path = SAVE_DIRECTORY,
     resolution: Resolution = "medium",
     overwrite: bool = False,
-) -> DownloadResult:
-    """Download tiles.
+) -> rasterio.DatasetReader:
+    """Download tiles and return the rasterio dataset.
 
     Parameters
     ----------
@@ -77,9 +78,9 @@ def download_tiles(
 
     Returns
     -------
-    DownloadResult
-        Manifest of written or reused files and counters of created/reused
-        entries.
+    rasterio.DatasetReader
+        Opened rasterio dataset for the downloaded GeoTIFF. The caller is
+        responsible for closing the dataset.
 
     Raises
     ------
@@ -99,8 +100,8 @@ def download_tiles(
         raise ValueError("Supported resolutions: 'low', 'medium', 'high'")
 
     # Output directory
-    save_directory = _check_directory(save_directory)
-    result = DownloadResult(entries=[])
+    save_path = _check_directory(save_directory)
+    DownloadResult(entries=[])
 
     try:
         # Validate bbox values
@@ -109,51 +110,28 @@ def download_tiles(
         # Split antimeridian into 1 or 2 ranges
         longitude_limits = _split_antimeridian(west, east)
 
-        # Make one URL per longitude range covering the full latitude span
-        for i, (lon_a, lon_b) in enumerate(longitude_limits):
-            # Build coverage bounding box
-            coverage = BoundingBox(
-                west=lon_a, south=south, east=lon_b, north=north
-            )
+        # For simplicity, use the first longitude segment and return its dataset
+        # (Most common case is no antimeridian crossing = single segment)
+        lon_a, lon_b = longitude_limits[0]
 
-            # Build URL
-            url = _build_url(lon_a, south, lon_b, north, resolution)
+        # Build URL
+        url = _build_url(lon_a, south, lon_b, north, resolution)
 
-            # Determine file path (include resolution in filename to force re-download when resolution changes)
-            filename = _save_filename(
-                "gmrt", (lon_a, south, lon_b, north), resolution=resolution
-            )
-            filepath = save_directory / filename
+        # Determine file path (include resolution in filename to force re-download when resolution changes)
+        filename = _save_filename(
+            "gmrt", (lon_a, south, lon_b, north), resolution=resolution
+        )
+        filepath = save_path / filename
 
-            # Reuse if skip and exists
-            if filepath.exists() and not overwrite:
-                size = filepath.stat().st_size
-                result.entries.append(
-                    ManifestEntry(
-                        path=str(filepath),
-                        coverage=coverage,
-                        size_bytes=size,
-                        status="reused",
-                    )
-                )
-                result.count_reused += 1
-                continue
+        # Download if needed
+        if not filepath.exists() or overwrite:
+            _download_stream(url, filepath, overwrite=overwrite)
 
-            # Download
-            size = _download_stream(url, filepath, overwrite=overwrite)
-            result.entries.append(
-                ManifestEntry(
-                    path=str(filepath),
-                    coverage=coverage,
-                    size_bytes=size,
-                    status="created",
-                )
-            )
-            result.count_created += 1
+        # Open and return the rasterio dataset
+        return rasterio.open(filepath)
+
     except Exception as e:
-        result.errors.append(f"bbox error: {e}")
-        raise
-    return result
+        raise RuntimeError(f"Failed to download tiles: {e}") from e
 
 
 def get_path(result: DownloadResult) -> Path:

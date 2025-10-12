@@ -22,3 +22,7 @@ htmlcov/
 # Jupyter Notebook
 .ipynb_checkpoints
 **/*.tif
+
+# Docs
+docs/_build/
+docs/gallery/
