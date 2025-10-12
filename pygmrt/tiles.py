@@ -61,19 +61,18 @@ class DownloadResult:
 
 def download_tiles(
     *,
-    bbox: Optional[Sequence[float]] = None,
+    bbox: Sequence[float] = None,
     dest: str,
     format: Format = "geotiff",
     resolution: Resolution = "medium",
     overwrite: bool = False,
 ) -> DownloadResult:
-    """Download tiles for a single bounding box.
+    """Download tiles.
 
     Parameters
     ----------
-    bbox : sequence of float, optional
+    bbox : sequence of float
         Bounding box in WGS84 degrees as ``[west, south, east, north]``.
-        Must be provided.
     dest : str
         Destination directory path where files will be written. Created if
         needed.

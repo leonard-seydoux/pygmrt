@@ -16,14 +16,12 @@ def test_multiple_calls_handle_multiple(monkeypatch, tmp_path):
         dest=str(tmp_path),
         format="geotiff",
         resolution="low",
-        provider="gmrt",
     )
     res2 = tiles.download_tiles(
         bbox=[170, -5, -170, 5],
         dest=str(tmp_path),
         format="geotiff",
         resolution="low",
-        provider="gmrt",
     )
 
     total_entries = len(res1.entries) + len(res2.entries)

@@ -2,8 +2,8 @@
 
 Minimal Python package to download GMRT tiles for a given bounding box.
 
-- Providers: `gmrt` (default, no API key) and `opentopo` (requires OpenTopography API key)
-- Formats: GeoTIFF (default). PNG is available in the API but not via GMRT provider.
+- Provider: GMRT GridServer only (no API key)
+- Formats: GeoTIFF (default)
 - Resolution: low, medium (default), high
 - Antimeridian: automatically handled by splitting and merging ranges
 
@@ -29,7 +29,7 @@ Notes:
 - Existing files are reused when `overwrite=False` (default).
 - Network tests are skipped by default; enable with `-m network` in pytest.
 
-## La Réunion example (GMRT, GeoTIFF)
+## La Réunion example (GeoTIFF)
 
 ```python
 from pygmrt.tiles import download_tiles
@@ -38,7 +38,6 @@ result = download_tiles(
 	bbox=[55.0, -21.5, 56.0, -20.5],
 	dest="./data",
 	format="geotiff",
-	provider="gmrt",
 )
 print(result.entries[0].path)
 ```
