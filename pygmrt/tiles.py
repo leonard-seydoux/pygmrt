@@ -119,8 +119,10 @@ def download_tiles(
             # Build URL
             url = _build_url(lon_a, south, lon_b, north, resolution)
 
-            # Determine file path
-            filename = _save_filename("gmrt", (lon_a, south, lon_b, north))
+            # Determine file path (include resolution in filename to force re-download when resolution changes)
+            filename = _save_filename(
+                "gmrt", (lon_a, south, lon_b, north), resolution=resolution
+            )
             filepath = save_directory / filename
 
             # Reuse if skip and exists
@@ -242,9 +244,15 @@ def _split_antimeridian(
 def _save_filename(
     prefix: str,
     bbox: Tuple[float, float, float, float],
+    *,
+    resolution: Resolution = "medium",
     extension: str = EXTENSION,
 ) -> str:
-    """Create a deterministic and safe filename for a bbox and format.
+    """Create a deterministic and safe filename for a bbox and resolution.
+
+    The resolution token is embedded so that requests for different resolution
+    levels produce distinct filenames and therefore trigger re-downloads when
+    a different resolution is requested.
 
     Parameters
     ----------
@@ -252,18 +260,18 @@ def _save_filename(
         Filename prefix, typically the provider name.
     bbox : tuple of float
         Bounding box as ``(west, south, east, north)``.
+    resolution : {"low","medium","high"}
+        Named resolution included in the filename.
     extension : str, default "tif"
         File extension without leading dot.
 
     Returns
     -------
     str
-        Filename with fixed decimal precision and appropriate extension.
+        Filename with fixed decimal precision, resolution token, and extension.
     """
     west, south, east, north = bbox
-    return (
-        f"{prefix}_{west:.3f}_{south:.3f}_{east:.3f}_{north:.3f}.{extension}"
-    )
+    return f"{prefix}_{resolution}_{west:.3f}_{south:.3f}_{east:.3f}_{north:.3f}.{extension}"
 
 
 def _check_directory(directory: str | Path) -> Path:
@@ -389,15 +397,19 @@ def _download_stream(
 def _map_resolution(res: Resolution) -> str:
     """Map named resolution to service-specific levels.
 
+    The GMRT GridServer requires resolution values to be positive powers of 2.
+    Lower numbers correspond to higher resolution (more detail).
+
     Notes
     -----
-    Currently returns the same value (``low``, ``medium``, or ``high``) and is a
-    placeholder for future provider-specific mapping.
+    - "high": 1 (highest resolution available, smallest grid size)
+    - "medium": 4 (moderate resolution)
+    - "low": 16 (lower resolution, larger grid size)
     """
     mapping = {
-        "low": "low",
-        "medium": "medium",
-        "high": "high",
+        "high": "1",
+        "medium": "4",
+        "low": "16",
     }
     return mapping[res]
 
@@ -419,10 +431,19 @@ def _build_url(
     str
         Fully qualified URL to request the data.
 
+    Notes
+    -----
+    The GMRT GridServer appears to return the best available resolution for the
+    requested area regardless of URL parameters. The resolution parameter is
+    currently included in the URL but may not affect the server response.
+    Different filenames based on resolution ensure proper caching behavior.
+
     Raises
     ------
     ValueError
         If unsupported format/provider combinations are requested or an unknown
         provider is supplied.
     """
-    return f"{GMRT_BASE_URL}?format=geotiff&west={west}&east={east}&south={south}&north={north}"
+    # Map resolution for potential future use
+    mapped_res = _map_resolution(res)
+    return f"{GMRT_BASE_URL}?format=geotiff&west={west}&east={east}&south={south}&north={north}&resolution={mapped_res}"
