@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygmrt"
+version = "0.1.0"
+description = "Minimal Python package to download GMRT tiles by bounding box"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "pygmrt maintainers" }]
+license = { text = "MIT" }
+dependencies = [
+  "black>=25.9.0",
+  "cartopy>=0.25.0",
+  "ipykernel>=6.30.1",
+  "pytest>=8.4.2",
+  "rasterio>=1.4.3",
+  "requests>=2.31.0",
+  "ruff>=0.14.0",
+  "typing-extensions>=4.7.0; python_version<'3.12'",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+
+[tool.setuptools]
+packages = ["pygmrt"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+per-file-ignores = {"notebooks/*.ipynb" = ["E401", "F401"]}
+
+[tool.black]
+line-length = 80
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unused_configs = true
+pretty = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q -m 'not network'"
+markers = [
+  "network: marks tests that require network access (deselect with '-m not network')",
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=7.3",
+  "pydata-sphinx-theme>=0.15.0",
+  "myst-parser>=2.0.0",
+  "sphinx-autodoc-typehints>=2.1.0",
+  "linkify-it-py>=2.0.0",
+]

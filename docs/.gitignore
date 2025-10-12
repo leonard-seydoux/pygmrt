@@ -1,0 +1,5 @@
+_build/
+_autosummary/
+_static/
+_templates/
+.doctrees/
