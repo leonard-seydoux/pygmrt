@@ -1,44 +1,78 @@
 # pygmrt
 
-Minimal Python package to download GMRT tiles for a given bounding box.
+Minimal Python package to download GMRT GeoTIFF tiles from GMRT GridServer by bounding box.
 
-- Provider: GMRT GridServer only (no API key)
-- Formats: GeoTIFF (default)
-- Resolution: low, medium (default), high
-- Antimeridian: automatically handled by splitting and merging ranges
+## Installation
 
-See `specs/001-create-a-python/quickstart.md` for usage examples.
+Use one of the options below.
 
-## Usage
+Option A — install directly from GitHub (no local clone required):
 
-Python example (single bbox):
-
-```python
-from pygmrt.tiles import download_tiles
-
-result = download_tiles(
-	bbox=[-73.5, 40.0, -71.5, 42.0],
-	save_directory="./data",
-)
-print(result)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install "git+https://github.com/leonard-seydoux/pygmrt.git"
 ```
 
-To process multiple bounding boxes, call `download_tiles` in a loop.
+Option B — develop locally (editable install):
 
-Notes:
-- Existing files are reused when `overwrite=False` (default).
-- Network tests are skipped by default; enable with `-m network` in pytest.
-
-## La Réunion example (GeoTIFF)
-
-```python
-from pygmrt.tiles import download_tiles
-
-result = download_tiles(
-	bbox=[55.0, -21.5, 56.0, -20.5],
-	save_directory="./data",
-)
-print(result.entries[0].path)
+```bash
+git clone https://github.com/leonard-seydoux/pygmrt.git
+cd pygmrt
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .
 ```
 
-Tip: if you encounter a corrupt or partial file (e.g. after an interrupted run), set `overwrite=True` to force a fresh download.
+Optional: for the plotting notebooks, install extras (Cartopy, Rasterio, Matplotlib):
+
+```bash
+pip install cartopy rasterio matplotlib ipykernel
+python -m ipykernel install --user --name pygmrt --display-name "Python (pygmrt)"
+```
+
+## Quickstart
+
+```python
+from pathlib import Path
+from pygmrt.tiles import download_tiles, get_path
+
+# La Réunion bbox [west, south, east, north]
+bbox = [55.0, -21.5, 56.0, -20.5]
+result = download_tiles(bbox=bbox, save_directory="./data", resolution="low")
+
+tif_path = get_path(result)
+print(f"Saved to: {tif_path}")
+```
+
+## Examples (Notebooks)
+
+All examples live in the `notebooks/` directory and can be run in Jupyter.
+
+- `playground.ipynb` — simple La Réunion demo with a hillshade plot.
+- `resolutions.ipynb` — compare downloads at low/medium/high resolutions.
+- `antimeridian.ipynb` — bbox that crosses the antimeridian (auto-split).
+
+See `notebooks/README.md` for a short index and how to run them.
+
+## API
+
+```python
+download_tiles(*, bbox, save_directory, resolution="medium", overwrite=False) -> DownloadResult
+get_path(result: DownloadResult) -> pathlib.Path
+```
+
+- Provider: GMRT GridServer (no API key)
+- Format: GeoTIFF (implicit)
+- BoundingBox keys: `west`, `south`, `east`, `north`
+
+## Development
+
+Run tests and lint locally:
+
+```bash
+pytest -q
+ruff check -q
+```
