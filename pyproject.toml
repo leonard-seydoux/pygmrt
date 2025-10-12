@@ -14,6 +14,7 @@ dependencies = [
   "black>=25.9.0",
   "cartopy>=0.25.0",
   "ipykernel>=6.30.1",
+  "pytest>=8.4.2",
   "rasterio>=1.4.3",
   "requests>=2.31.0",
   "typing-extensions>=4.7.0; python_version<'3.12'",
@@ -36,7 +37,7 @@ line-length = 100
 per-file-ignores = {"notebooks/*.ipynb" = ["E401", "F401"]}
 
 [tool.black]
-line-length = 100
+line-length = 80
 
 [tool.mypy]
 python_version = "3.11"
@@ -53,3 +54,5 @@ markers = [
   "network: marks tests that require network access (deselect with '-m not network')",
 ]
 
+[tool.uv.dependencies.dev]
+pygmrt = { path = ".", develop = true }

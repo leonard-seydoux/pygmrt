@@ -1,17 +1,22 @@
 """Tiles download module.
 
-Minimal API to download GMRT tiles for a given bounding box or batch of bboxes.
-Public entry point: download_tiles(...)
+Minimal API to download Global Multi-Resolution Topography (GMRT) tiles for a
+given bounding box or a batch of bounding boxes.
 
-This module intentionally keeps the surface area small to align with the project
-constitution and plan.
+Notes
+-----
+- Main entry point: :func:`download_tiles`.
+- Providers supported: ``gmrt`` (no API key) and ``opentopo`` (requires
+    an API key via the ``OPENTOPO_API_KEY`` environment variable).
+- Formats supported: ``geotiff`` (GMRT GridServer, OpenTopography). PNG is not
+    currently supported by GMRT GridServer in this package.
+- Antimeridian crossing is handled by splitting longitude ranges automatically.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import (
-    Iterable,
     List,
     Literal,
     Optional,
@@ -61,31 +66,50 @@ class DownloadResult:
 def download_tiles(
     *,
     bbox: Optional[Sequence[float]] = None,
-    bboxes: Optional[Iterable[Sequence[float]]] = None,
     dest: str,
     format: Format = "geotiff",
     resolution: Resolution = "medium",
     overwrite: bool = False,
     provider: Provider = "gmrt",
 ) -> DownloadResult:
-    """Download GMRT tiles for one bbox or a batch of bboxes.
+    """Download tiles for a single bounding box.
 
-    Args:
-        bbox: [minLon, minLat, maxLon, maxLat] in WGS84 degrees.
-        bboxes: Iterable of bbox sequences (mutually exclusive with bbox).
-        dest: Destination directory to write files.
-        format: Output format: "geotiff" (default) or "png".
-        resolution: Named resolution level: "low", "medium" (default), "high".
-    overwrite: If False (default), reuse existing files. If True, force re-download.
+    Parameters
+    ----------
+    bbox : sequence of float, optional
+        Bounding box in WGS84 degrees as ``[minLon, minLat, maxLon, maxLat]``.
+        Must be provided.
+    dest : str
+        Destination directory path where files will be written. Created if
+        needed.
+    format : {"geotiff", "png"}, default "geotiff"
+        Output format. For ``provider='gmrt'``, only ``"geotiff"`` is supported.
+    resolution : {"low", "medium", "high"}, default "medium"
+        Named resolution level; mapped internally to provider-specific datasets.
+    overwrite : bool, default False
+        If ``False``, reuse existing files. If ``True``, force re-download.
+    provider : {"gmrt", "opentopo"}, default "gmrt"
+        Source provider. ``gmrt`` uses the GridServer; ``opentopo`` uses Global
+        DEM API.
 
-    Returns:
-        DownloadResult with manifest entries and counts.
+    Returns
+    -------
+    DownloadResult
+        Manifest of written or reused files and counters of created/reused
+        entries.
+
+    Raises
+    ------
+    ValueError
+        If invalid argument combinations or bbox values are provided.
+    PermissionError
+        If the destination directory is not writable.
+    RuntimeError
+        If download attempts ultimately fail.
     """
-    # Validate mutually exclusive bbox/bboxes
-    if (bbox is None and bboxes is None) or (
-        bbox is not None and bboxes is not None
-    ):
-        raise ValueError("Provide either bbox or bboxes, but not both")
+    # Validate bbox presence
+    if bbox is None:
+        raise ValueError("Provide bbox as [minLon, minLat, maxLon, maxLat]")
 
     # Validate format
     if format not in ("geotiff", "png"):
@@ -146,22 +170,11 @@ def download_tiles(
             )
             result.count_created += 1
 
-    if bbox is not None:
-        try:
-            _process_one(bbox)
-        except Exception as e:
-            result.errors.append(f"bbox error: {e}")
-            raise
-        return result
-
-    assert bboxes is not None
-    for b in bboxes:
-        try:
-            _process_one(b)
-        except Exception as e:
-            result.errors.append(f"bbox {list(b)} error: {e}")
-            # continue with next bbox
-            continue
+    try:
+        _process_one(bbox)
+    except Exception as e:
+        result.errors.append(f"bbox error: {e}")
+        raise
     return result
 
 
@@ -169,6 +182,24 @@ def download_tiles(
 
 
 def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
+    """Validate a bounding box.
+
+    Parameters
+    ----------
+    b : sequence of float
+        Bounding box as ``[minLon, minLat, maxLon, maxLat]`` in degrees.
+
+    Returns
+    -------
+    tuple of float
+        The validated bbox as ``(minLon, minLat, maxLon, maxLat)`` with floats.
+
+    Raises
+    ------
+    ValueError
+        If the bbox length is not 4, latitude/longitude values are out of range,
+        or ``minLat >= maxLat``.
+    """
     if len(b) != 4:
         raise ValueError(
             "bbox must be a sequence of 4 numbers: [minLon, minLat, maxLon, maxLat]"
@@ -187,10 +218,18 @@ def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
 def _split_antimeridian(
     min_lon: float, max_lon: float
 ) -> List[Tuple[float, float]]:
-    """Return 1 or 2 longitude ranges accounting for antimeridian crossing.
+    """Split longitude range if crossing the antimeridian.
 
-    If min_lon <= max_lon: returns [(min_lon, max_lon)]
-    If min_lon > max_lon: returns [(min_lon, 180.0), (-180.0, max_lon)]
+    Parameters
+    ----------
+    min_lon, max_lon : float
+        Input longitudes in degrees, each within [-180, 180].
+
+    Returns
+    -------
+    list of tuple of float
+        One or two ranges ``[(minLon, maxLon), ...]`` depending on whether the
+        interval crosses the antimeridian.
     """
     if min_lon <= max_lon:
         return [(min_lon, max_lon)]
@@ -200,6 +239,22 @@ def _split_antimeridian(
 def _safe_filename(
     prefix: str, fmt: Format, rng: Tuple[float, float, float, float]
 ) -> str:
+    """Create a deterministic and safe filename for a bbox and format.
+
+    Parameters
+    ----------
+    prefix : str
+        Filename prefix, typically the provider name.
+    fmt : {"geotiff", "png"}
+        Output format determining the file extension.
+    rng : tuple of float
+        Bounding box as ``(minLon, minLat, maxLon, maxLat)``.
+
+    Returns
+    -------
+    str
+        Filename with fixed decimal precision and appropriate extension.
+    """
     min_lon, min_lat, max_lon, max_lat = rng
     ext = "tif" if fmt == "geotiff" else "png"
     # Keep predictable precision to avoid overly long names
@@ -207,6 +262,23 @@ def _safe_filename(
 
 
 def _ensure_dest(dest: str) -> Path:
+    """Ensure destination directory exists and is writable.
+
+    Parameters
+    ----------
+    dest : str
+        Destination directory path.
+
+    Returns
+    -------
+    pathlib.Path
+        The destination path object.
+
+    Raises
+    ------
+    PermissionError
+        If the destination exists but is not writable.
+    """
     p = Path(dest)
     p.mkdir(parents=True, exist_ok=True)
     if not os.access(p, os.W_OK):
@@ -223,9 +295,34 @@ def _download_stream(
     backoff: float = 0.5,
     overwrite: bool = False,
 ) -> int:
-    """Download a URL to dest_file atomically, streaming to avoid large buffers.
+    """Download a URL to a file, atomically and with streaming.
 
-    Returns size in bytes. Reuses existing file when overwrite is False.
+    Parameters
+    ----------
+    url : str
+        Source URL to fetch.
+    dest_file : pathlib.Path
+        Target file path to write. A temporary ``.part`` is used and atomically
+        moved into place on completion.
+    timeout : float, default 30.0
+        Per-request timeout in seconds.
+    retries : int, default 3
+        Number of retry attempts on failures.
+    backoff : float, default 0.5
+        Linear backoff multiplier between retries, in seconds.
+    overwrite : bool, default False
+        If ``False``, reuse existing file. If ``True``, force re-download.
+
+    Returns
+    -------
+    int
+        Size of the written file in bytes.
+
+    Raises
+    ------
+    RuntimeError
+        When the HTTP response indicates an error or returns a text/JSON/HTML payload
+        instead of a binary raster file.
     """
     if dest_file.exists() and not overwrite:
         return dest_file.stat().st_size
@@ -283,9 +380,12 @@ def _download_stream(
 
 
 def _map_resolution(res: Resolution) -> str:
-    """Map named resolution to service-specific level.
+    """Map named resolution to service-specific levels.
 
-    For now, names map directly to service levels to keep API simple.
+    Notes
+    -----
+    Currently returns the same value (``low``, ``medium``, or ``high``) and is a
+    placeholder for future provider-specific mapping.
     """
     mapping = {
         "low": "low",
@@ -304,6 +404,30 @@ def _build_url(
     res: Resolution,
     provider: Provider,
 ) -> str:
+    """Construct a provider-specific data URL for a bounding box.
+
+    Parameters
+    ----------
+    min_lon, min_lat, max_lon, max_lat : float
+        Bounding box edges in degrees.
+    fmt : {"geotiff", "png"}
+        Desired output format.
+    res : {"low", "medium", "high"}
+        Named resolution level used for provider mapping.
+    provider : {"gmrt", "opentopo"}
+        Which provider to target.
+
+    Returns
+    -------
+    str
+        Fully qualified URL to request the data.
+
+    Raises
+    ------
+    ValueError
+        If unsupported format/provider combinations are requested or an unknown
+        provider is supplied.
+    """
     if provider == "gmrt":
         # GMRT GridServer (no API key). Supports GeoTIFF via west/east/south/north.
         if fmt != "geotiff":
@@ -334,9 +458,13 @@ def _build_url(
 def _opentopo_dataset_for(res: Resolution) -> str:
     """Map resolution names to OpenTopography dataset identifiers.
 
-    - low -> SRTM15_PLUS (15 arc-second global topo-bathy)
-    - medium -> SRTMGL3 (3 arc-second ~90 m global SRTM)
-    - high -> SRTMGL1 (1 arc-second ~30 m; may be restricted in some regions)
+    Notes
+    -----
+    Mapping used currently:
+
+    - ``low`` -> ``SRTM15_PLUS`` (15 arc-second global topo-bathy)
+    - ``medium`` -> ``SRTMGL3`` (3 arc-second ~90 m global SRTM)
+    - ``high`` -> ``SRTMGL1`` (1 arc-second ~30 m; may be restricted in regions)
     """
     mapping = {
         "low": "SRTM15_PLUS",

@@ -68,7 +68,7 @@ specified target (>=80%) and must not regress on changed files.
 
 ### Implementation for User Story 1
 
-- [X] T019 [US1] Implement `download_tiles(bbox, dest, format="geotiff", resolution="medium", overwrite=False, bboxes=None)` core happy path in `pygmrt/tiles.py`
+- [X] T019 [US1] Implement `download_tiles(bbox, dest, format="geotiff", resolution="medium", overwrite=False)` core happy path in `pygmrt/tiles.py`
 - [X] T020 [P] [US1] Input validation + error messages (invalid bbox, unwritable dest) in `src/pygmrt/tiles.py`
 - [X] T021 [P] [US1] Implement tile selection for bbox and call streaming downloader in `pygmrt/tiles.py`
 - [X] T022 [US1] Build manifest entries and return `DownloadResult` in `pygmrt/tiles.py`
@@ -99,24 +99,15 @@ specified target (>=80%) and must not regress on changed files.
 
 ---
 
-## Phase 5: User Story 3 - Batch requests (Priority: P3)
+## Phase 5: Multiple calls (Optional)
 
-**Goal**: Accept multiple bboxes; process sequentially; produce combined manifest with per-bbox grouping
+**Goal**: Demonstrate processing multiple bounding boxes by calling the single-bbox API in a loop.
 
-**Independent Test**: Provide two small bboxes; verify both sets saved and manifest groups entries by bbox
+**Independent Test**: Provide two small bboxes and call the function twice; verify both files saved.
 
-### Tests for User Story 3
+### Tests
 
-- [X] T029 [P] [US3] Unit test: batch input handling and manifest grouping in `tests/unit/test_batch.py`
-- [X] T030 [P] [US3] Unit test: invalid bbox among several → continue with per-bbox errors collected in `tests/unit/test_batch.py`
-
-### Implementation for User Story 3
-
-- [X] T031 [US3] Extend `download_tiles` to accept `bboxes` list argument (mutually exclusive with single `bbox`)
-- [X] T032 [P] [US3] Iterate sequentially; collect manifests; include per-bbox results and errors without aborting all
-- [X] T033 [US3] Document batch behavior and error aggregation in function docstring
-
-**Checkpoint**: All user stories now independently functional
+- [X] T029 [P] Unit test: two separate calls in `tests/unit/test_batch.py` using a fake downloader.
 
 ---
 

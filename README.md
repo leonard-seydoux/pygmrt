@@ -23,19 +23,7 @@ result = download_tiles(
 print(result)
 ```
 
-Batch example (multiple bboxes):
-
-```python
-from pygmrt.tiles import download_tiles
-
-result = download_tiles(
-	bboxes=[[-73.5, 40.0, -71.5, 42.0], [-10.0, 35.0, -8.0, 37.0]],
-	format="geotiff",
-	resolution="low",
-	dest="./data",
-)
-print(result.count_created, "files created")
-```
+To process multiple bounding boxes, call `download_tiles` in a loop.
 
 Notes:
 - Existing files are reused when `overwrite=False` (default).

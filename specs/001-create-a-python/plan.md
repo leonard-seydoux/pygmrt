@@ -45,7 +45,7 @@ The plan includes these gates and passes with no waivers:
 - Testing Standards: Target >=80% coverage; unit tests for validation, naming, manifest; integration
   test for a small bbox (opt-in marker to avoid flaky CI). No merges on red tests.
 - UX Consistency: Public API function `download_tiles(bbox, dest, format='geotiff', resolution='medium',
-  overwrite=False, bboxes=None)` with clear parameter names and actionable errors.
+  overwrite=False)` with clear parameter names and actionable errors.
 - Performance Requirements: Budget as above; measure via wall-clock timing for a fixed bbox; ensure
   streaming downloads and reuse existing files to minimize unnecessary work.
 
