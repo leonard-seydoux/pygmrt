@@ -125,6 +125,7 @@ def download_tiles(
 
         # Download if needed
         if not filepath.exists() or overwrite:
+            print(f"Downloading {url} to {filepath} ...")
             _download_stream(url, filepath, overwrite=overwrite)
 
         # Open and return the rasterio dataset
@@ -385,9 +386,9 @@ def _map_resolution(res: Resolution) -> str:
     - "low": 16 (lower resolution, larger grid size)
     """
     mapping = {
-        "high": "1",
-        "medium": "4",
-        "low": "16",
+        "high": "high",
+        "medium": "med",
+        "low": "low",
     }
     return mapping[res]
 
