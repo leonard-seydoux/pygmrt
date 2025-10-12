@@ -18,7 +18,7 @@ from pygmrt.tiles import download_tiles
 
 result = download_tiles(
 	bbox=[-73.5, 40.0, -71.5, 42.0],
-	dest="./data",
+	save_directory="./data",
 )
 print(result)
 ```
@@ -36,8 +36,7 @@ from pygmrt.tiles import download_tiles
 
 result = download_tiles(
 	bbox=[55.0, -21.5, 56.0, -20.5],
-	dest="./data",
-	format="geotiff",
+	save_directory="./data",
 )
 print(result.entries[0].path)
 ```

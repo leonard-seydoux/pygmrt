@@ -7,9 +7,8 @@
 
 ## Summary
 
-Build a minimal Python package with a single primary entry point that downloads GMRT tiles for a given
-bounding box (and optional batch), supporting output formats GeoTIFF (default) and PNG, and named
-resolution levels (low/medium/high). Keep file and function count low while delivering a complete flow
+Build a minimal Python package with a single primary entry point that downloads GMRT GeoTIFF tiles for a given
+bbox. Keep file and function count low while delivering a complete flow
 including validation, deterministic file naming, manifest return, and resumable runs (reuse existing
 files when overwrite=False).
 
@@ -44,7 +43,7 @@ The plan includes these gates and passes with no waivers:
   Complexity kept minimal: one module, one public function, a couple small helpers.
 - Testing Standards: Target >=80% coverage; unit tests for validation, naming, manifest; integration
   test for a small bbox (opt-in marker to avoid flaky CI). No merges on red tests.
-- UX Consistency: Public API function `download_tiles(bbox, dest, format='geotiff', resolution='medium',
+- UX Consistency: Public API function `download_tiles(bbox, save_directory, resolution='medium',
   overwrite=False)` with clear parameter names and actionable errors.
 - Performance Requirements: Budget as above; measure via wall-clock timing for a fixed bbox; ensure
   streaming downloads and reuse existing files to minimize unnecessary work.

@@ -9,20 +9,15 @@ def test_map_resolution_levels():
 
 
 def test_build_url_contains_params_gmrt():
-    url = _build_url(-10, -5, 10, 5, "geotiff", "medium")
+    url = _build_url(-10, -5, 10, 5, "medium")
     # GMRT GridServer uses west/east/south/north
     assert "west=-10" in url and "east=10" in url
     assert "south=-5" in url and "north=5" in url
     assert "format=geotiff" in url
 
 
-def test_invalid_format():
-    with pytest.raises(ValueError):
-        download_tiles(bbox=[-10, -5, 10, 5], dest="./data", format="jpeg")
-
-
 def test_invalid_resolution():
     with pytest.raises(ValueError):
         download_tiles(
-            bbox=[-10, -5, 10, 5], dest="./data", resolution="ultra"
+            bbox=[-10, -5, 10, 5], save_directory="./data", resolution="ultra"
         )

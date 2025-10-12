@@ -11,16 +11,15 @@
 from pygmrt.tiles import download_tiles
 
 # Download a 2° x 2° bbox with defaults to ./data
-result = download_tiles(bbox=[-73.5, 40.0, -71.5, 42.0], dest="./data")
+result = download_tiles(bbox=[-73.5, 40.0, -71.5, 42.0], save_directory="./data")
 print(result)
 ```
 
 ## Options
 
-- format: "geotiff" (default) or "png"
 - resolution: "low", "medium" (default), "high"
+- save_directory: folder path to write files into
 - overwrite: False (default) or True
-- bboxes: pass a list of bboxes for batch downloads
 
 ## Notes
 

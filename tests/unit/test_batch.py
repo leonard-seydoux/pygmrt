@@ -13,14 +13,12 @@ def test_multiple_calls_handle_multiple(monkeypatch, tmp_path):
 
     res1 = tiles.download_tiles(
         bbox=[-10, -5, 10, 5],
-        dest=str(tmp_path),
-        format="geotiff",
+        save_directory=str(tmp_path),
         resolution="low",
     )
     res2 = tiles.download_tiles(
         bbox=[170, -5, -170, 5],
-        dest=str(tmp_path),
-        format="geotiff",
+        save_directory=str(tmp_path),
         resolution="low",
     )
 

@@ -30,8 +30,11 @@ import requests
 # Service endpoints
 GMRT_BASE_URL = "https://www.gmrt.org/services/GridServer"
 
+# Default
+SAVE_DIRECTORY = "./geotiff"
+EXTENSION = "tif"
+
 # Type aliases for clarity
-Format = Literal["geotiff"]
 Resolution = Literal["low", "medium", "high"]
 
 
@@ -45,7 +48,6 @@ class BoundingBox(TypedDict):
 @dataclass
 class ManifestEntry:
     path: str
-    format: Format
     coverage: BoundingBox
     size_bytes: int
     status: Literal["created", "reused"]
@@ -62,8 +64,7 @@ class DownloadResult:
 def download_tiles(
     *,
     bbox: Sequence[float] = None,
-    dest: str,
-    format: Format = "geotiff",
+    save_directory: str | Path = SAVE_DIRECTORY,
     resolution: Resolution = "medium",
     overwrite: bool = False,
 ) -> DownloadResult:
@@ -73,17 +74,13 @@ def download_tiles(
     ----------
     bbox : sequence of float
         Bounding box in WGS84 degrees as ``[west, south, east, north]``.
-    dest : str
+    save_directory : str or pathlib.Path
         Destination directory path where files will be written. Created if
         needed.
-    format : {"geotiff"}, default "geotiff"
-        Output format. GMRT GridServer supports GeoTIFF here.
     resolution : {"low", "medium", "high"}, default "medium"
         Named resolution level; mapped internally to provider-specific datasets.
     overwrite : bool, default False
         If ``False``, reuse existing files. If ``True``, force re-download.
-    provider : removed
-        Single provider (GMRT) by design.
 
     Returns
     -------
@@ -104,45 +101,41 @@ def download_tiles(
     if bbox is None:
         raise ValueError("Provide bbox as [west, south, east, north]")
 
-    # Validate format
-    if format not in ("geotiff",):
-        raise ValueError("Unsupported format. Supported: 'geotiff'")
-
     # Validate resolution
     if resolution not in ("low", "medium", "high"):
-        raise ValueError(
-            "Unsupported resolution. Supported: 'low', 'medium', 'high'"
-        )
+        raise ValueError("Supported resolutions: 'low', 'medium', 'high'")
 
-    dest_path = _ensure_dest(dest)
-
+    # Output directory
+    save_directory = _check_directory(save_directory)
     result = DownloadResult(entries=[])
 
-    def _process_one(b: Sequence[float]) -> None:
-        min_lon, min_lat, max_lon, max_lat = _validate_bbox(b)
+    try:
+        # Validate bbox values
+        west, south, east, north = _validate_bbox(bbox)
+
         # Split antimeridian into 1 or 2 ranges
-        lon_ranges = _split_antimeridian(min_lon, max_lon)
-        # For simplicity, one URL per longitude range covering the full latitude span
-        for i, (lon_a, lon_b) in enumerate(lon_ranges):
+        longitude_limits = _split_antimeridian(west, east)
+
+        # Make one URL per longitude range covering the full latitude span
+        for i, (lon_a, lon_b) in enumerate(longitude_limits):
+            # Build coverage bounding box
             coverage = BoundingBox(
-                west=lon_a, south=min_lat, east=lon_b, north=max_lat
+                west=lon_a, south=south, east=lon_b, north=north
             )
+
             # Build URL
-            url = _build_url(
-                lon_a, min_lat, lon_b, max_lat, format, resolution
-            )
-            # Determine filename
-            fname = _safe_filename(
-                "gmrt", format, (lon_a, min_lat, lon_b, max_lat)
-            )
-            dest_file = dest_path / fname
+            url = _build_url(lon_a, south, lon_b, north, resolution)
+
+            # Determine file path
+            filename = _save_filename("gmrt", (lon_a, south, lon_b, north))
+            filepath = save_directory / filename
+
             # Reuse if skip and exists
-            if dest_file.exists() and not overwrite:
-                size = dest_file.stat().st_size
+            if filepath.exists() and not overwrite:
+                size = filepath.stat().st_size
                 result.entries.append(
                     ManifestEntry(
-                        path=str(dest_file),
-                        format=format,
+                        path=str(filepath),
                         coverage=coverage,
                         size_bytes=size,
                         status="reused",
@@ -150,36 +143,30 @@ def download_tiles(
                 )
                 result.count_reused += 1
                 continue
+
             # Download
-            size = _download_stream(url, dest_file, overwrite=overwrite)
+            size = _download_stream(url, filepath, overwrite=overwrite)
             result.entries.append(
                 ManifestEntry(
-                    path=str(dest_file),
-                    format=format,
+                    path=str(filepath),
                     coverage=coverage,
                     size_bytes=size,
                     status="created",
                 )
             )
             result.count_created += 1
-
-    try:
-        _process_one(bbox)
     except Exception as e:
         result.errors.append(f"bbox error: {e}")
         raise
     return result
 
 
-# === Phase 2: Foundational helpers ===
-
-
-def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
+def _validate_bbox(bbox: Sequence[float]) -> Tuple[float, float, float, float]:
     """Validate a bounding box.
 
     Parameters
     ----------
-    b : sequence of float
+    bbox : sequence of float
         Bounding box as ``[west, south, east, north]`` in degrees.
 
     Returns
@@ -189,23 +176,19 @@ def _validate_bbox(b: Sequence[float]) -> Tuple[float, float, float, float]:
 
     Raises
     ------
-    ValueError
-    If the bbox length is not 4, latitude/longitude values are out of range,
-    or ``south >= north``.
+    ValueError If the bbox length is not 4, latitude/longitude values are out of
+    range, or ``south >= north``.
     """
-    if len(b) != 4:
-        raise ValueError(
-            "bbox must be a sequence of 4 numbers: [west, south, east, north]"
-        )
-    min_lon, min_lat, max_lon, max_lat = map(float, b)
-    if not (-180.0 <= min_lon <= 180.0 and -180.0 <= max_lon <= 180.0):
+    if len(bbox) != 4:
+        raise ValueError("bbox must have shape: [west, south, east, north]")
+    west, south, east, north = map(float, bbox)
+    if not (-180.0 <= west <= 180.0 and -180.0 <= east <= 180.0):
         raise ValueError("longitude values must be in [-180, 180]")
-    if not (-90.0 <= min_lat <= 90.0 and -90.0 <= max_lat <= 90.0):
+    if not (-90.0 <= south <= 90.0 and -90.0 <= north <= 90.0):
         raise ValueError("latitude values must be in [-90, 90]")
-    if min_lat >= max_lat:
+    if south >= north:
         raise ValueError("south must be < north")
-    # Antimeridian allowed (min_lon may be > max_lon) handled by split helper
-    return min_lon, min_lat, max_lon, max_lat
+    return west, south, east, north
 
 
 def _split_antimeridian(
@@ -229,8 +212,10 @@ def _split_antimeridian(
     return [(min_lon, 180.0), (-180.0, max_lon)]
 
 
-def _safe_filename(
-    prefix: str, fmt: Format, rng: Tuple[float, float, float, float]
+def _save_filename(
+    prefix: str,
+    bbox: Tuple[float, float, float, float],
+    extension: str = EXTENSION,
 ) -> str:
     """Create a deterministic and safe filename for a bbox and format.
 
@@ -238,28 +223,28 @@ def _safe_filename(
     ----------
     prefix : str
         Filename prefix, typically the provider name.
-    fmt : {"geotiff"}
-        Output format determining the file extension.
-    rng : tuple of float
+    bbox : tuple of float
         Bounding box as ``(west, south, east, north)``.
+    extension : str, default "tif"
+        File extension without leading dot.
 
     Returns
     -------
     str
         Filename with fixed decimal precision and appropriate extension.
     """
-    min_lon, min_lat, max_lon, max_lat = rng
-    ext = "tif"
-    # Keep predictable precision to avoid overly long names
-    return f"{prefix}_{min_lon:.3f}_{min_lat:.3f}_{max_lon:.3f}_{max_lat:.3f}.{ext}"
+    west, south, east, north = bbox
+    return (
+        f"{prefix}_{west:.3f}_{south:.3f}_{east:.3f}_{north:.3f}.{extension}"
+    )
 
 
-def _ensure_dest(dest: str) -> Path:
+def _check_directory(directory: str | Path) -> Path:
     """Ensure destination directory exists and is writable.
 
     Parameters
     ----------
-    dest : str
+    directory : str or pathlib.Path
         Destination directory path.
 
     Returns
@@ -272,16 +257,16 @@ def _ensure_dest(dest: str) -> Path:
     PermissionError
         If the destination exists but is not writable.
     """
-    p = Path(dest)
-    p.mkdir(parents=True, exist_ok=True)
-    if not os.access(p, os.W_OK):
-        raise PermissionError(f"Destination not writable: {dest}")
-    return p
+    path = Path(directory)
+    path.mkdir(parents=True, exist_ok=True)
+    if not os.access(path, os.W_OK):
+        raise PermissionError(f"Destination not writable: {directory}")
+    return path
 
 
 def _download_stream(
     url: str,
-    dest_file: Path,
+    filepath: Path,
     *,
     timeout: float = 30.0,
     retries: int = 3,
@@ -294,7 +279,7 @@ def _download_stream(
     ----------
     url : str
         Source URL to fetch.
-    dest_file : pathlib.Path
+    filepath : pathlib.Path
         Target file path to write. A temporary ``.part`` is used and atomically
         moved into place on completion.
     timeout : float, default 30.0
@@ -317,10 +302,12 @@ def _download_stream(
         When the HTTP response indicates an error or returns a text/JSON/HTML payload
         instead of a binary raster file.
     """
-    if dest_file.exists() and not overwrite:
-        return dest_file.stat().st_size
+    # Skip if exists and not overwriting
+    if filepath.exists() and not overwrite:
+        return filepath.stat().st_size
 
-    tmp = dest_file.with_suffix(dest_file.suffix + ".part")
+    # Temporary file path
+    tmp = filepath.with_suffix(filepath.suffix + ".part")
     attempt = 0
     while True:
         try:
@@ -328,7 +315,7 @@ def _download_stream(
                 try:
                     r.raise_for_status()
                 except Exception as http_err:
-                    # include response status and a small portion of the body to help debugging
+                    # include response status and a part of the body for help
                     content_preview = None
                     try:
                         content_preview = r.text[:1024]
@@ -357,8 +344,8 @@ def _download_stream(
                         if chunk:
                             f.write(chunk)
             # Atomic replace
-            tmp.replace(dest_file)
-            return dest_file.stat().st_size
+            tmp.replace(filepath)
+            return filepath.stat().st_size
         except Exception:
             attempt += 1
             try:
@@ -389,25 +376,16 @@ def _map_resolution(res: Resolution) -> str:
 
 
 def _build_url(
-    min_lon: float,
-    min_lat: float,
-    max_lon: float,
-    max_lat: float,
-    fmt: Format,
-    res: Resolution,
+    west: float, south: float, east: float, north: float, res: Resolution
 ) -> str:
     """Construct a provider-specific data URL for a bounding box.
 
     Parameters
     ----------
-    min_lon, min_lat, max_lon, max_lat : float
+    west, south, east, north : float
         Bounding box edges in degrees.
-    fmt : {"geotiff"}
-        Desired output format.
     res : {"low", "medium", "high"}
         Named resolution level used for provider mapping.
-    provider : removed
-        Single provider (GMRT) by design.
 
     Returns
     -------
@@ -420,10 +398,4 @@ def _build_url(
         If unsupported format/provider combinations are requested or an unknown
         provider is supplied.
     """
-    # GMRT GridServer (no API key). Supports GeoTIFF via west/east/south/north.
-    if fmt != "geotiff":
-        raise ValueError("GMRT supports only 'geotiff' format")
-    return f"{GMRT_BASE_URL}?format=geotiff&west={min_lon}&east={max_lon}&south={min_lat}&north={max_lat}"
-
-
-# OpenTopography support removed: single-provider (GMRT) by design.
+    return f"{GMRT_BASE_URL}?format=geotiff&west={west}&east={east}&south={south}&north={north}"
