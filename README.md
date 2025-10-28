@@ -66,15 +66,15 @@ tiles = download_tiles(bbox=[55.05, -21.5, 55.95, -20.7], resolution="low")
 show(tiles)
 ```
 
-![](notebooks/01_quickstart.png)
+![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/01_quickstart.png)
 
 ## Other examples
 
-The playground notebook [02_playground.ipynb](notebooks/02_playground.ipynb) contains more advanced examples, including shaded relief visualizations with `matplotlib` and `cartopy`. The following figures were generated with that notebook.
+The playground notebook [02_playground.ipynb](https://github.com/leonard-seydoux/pygmrt/blob/main/notebooks/02_playground.ipynb) contains more advanced examples, including shaded relief visualizations with `matplotlib` and `cartopy`. The following figures were generated with that notebook.
 
-![](notebooks/reunion.svg)
+![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/02_playground_reunion.svg)
 
-![](notebooks/piton.svg)
+![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/02_playground_colombia.svg)
 
 ## API reference
 
