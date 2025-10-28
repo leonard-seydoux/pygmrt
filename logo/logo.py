@@ -82,7 +82,9 @@ def main():
     ax.axis("off")
 
     # Save
-    fig.savefig("logo.png")
+    fig.savefig(
+        "logo.png", transparent=True, bbox_inches="tight", pad_inches=0
+    )
 
 
 if __name__ == "__main__":

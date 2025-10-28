@@ -1,5 +1,7 @@
 # PyGMRT
 
+<img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/logo/logo.png" alt="PyGMRT Logo" style="mix-blend-mode: multiply;"/>
+
 A minimal Python package for downloading bathymetry and topography tiles from the [Global Multi-Resolution Topography (GMRT) Synthesis](https://www.gmrt.org/).
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
