@@ -82,19 +82,19 @@ def convert_notebook():
     """Convert notebook to markdown with SVG output."""
     print("Converting notebook to markdown (SVG format)...")
 
-    # Use jupyter from the same environment as this script
-    venv_jupyter = os.path.join(os.path.dirname(sys.executable), "jupyter")
-
     # Convert without executing (uses existing cell outputs with SVG format)
     result = subprocess.run(
         [
-            venv_jupyter,
+            "uv",
+            "run",
+            "jupyter",
             "nbconvert",
             "--to",
             "markdown",
-            "README.ipynb",
+            "readme.ipynb",
             "--output",
             "README.md",
+            '--ExtractOutputPreprocessor.extract_output_types={"image/svg+xml"}',
         ],
         capture_output=True,
         text=True,
@@ -106,32 +106,31 @@ def convert_notebook():
     return True
 
 
-def replace_image_urls():
-    """Replace local image paths with GitHub raw URLs."""
-    print("Replacing image URLs...")
+def check_images():
+    """Check if SVG images were generated."""
+    print("Checking generated images...")
 
     with open("README.md", "r") as f:
         content = f.read()
 
-    # Replace README_files images (support both .svg and .png, but prefer .svg)
-    content = re.sub(
-        r"!\[(.*?)\]\(README_files/(.*?)\.(png|svg)\)",
-        rf"![\1]({BASE_URL}/README_files/\2.svg)",
-        content,
-    )
-
-    with open("README.md", "w") as f:
-        f.write(content)
-
-    print("✓ Image URLs replaced")
+    # Count SVG image references
+    import re
+    svg_refs = re.findall(r'!\[.*?\]\(README_files/.*?\.svg\)', content)
+    
+    if svg_refs:
+        print(f"✓ Found {len(svg_refs)} SVG image(s) in README_files/")
+    else:
+        print("⚠ No SVG images found")
+    
+    return len(svg_refs) > 0
 
 
 def main():
     """Main build process."""
     if convert_notebook():
-        replace_image_urls()
+        check_images()
         print("\n✅ README.md built successfully!")
-        print(f"Images will be served from: {BASE_URL}")
+        print("📦 SVG images saved in README_files/ directory")
     else:
         print("\n❌ Build failed")
         return 1
