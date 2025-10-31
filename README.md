@@ -1,15 +1,9 @@
 # PyGMRT
 
-<div align="center">
-
-<img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/logo/logo.png" alt="PyGMRT Logo" width=100/>
-
 A minimal Python package for downloading bathymetry and topography tiles from the [Global Multi-Resolution Topography (GMRT) Synthesis](https://www.gmrt.org/).
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
-</div>
 
 ## Features
 
@@ -49,105 +43,188 @@ pip install pygmrt
 Or install from source:
 
 ```bash
-# Or install from source
 git clone https://github.com/leonard-seydoux/pygmrt.git
 cd pygmrt
 pip install -e .
 ```
 
+## Quick start
 
+The simplest way to download and visualize GMRT tiles is with a single function call. The package integrates seamlessly with `rasterio` for reading GeoTIFF files and `pycpt-city` for beautiful color palettes.
 
-
-
-## Quick Start
 
 ```python
+%config InlineBackend.figure_format = 'svg'
+
 from rasterio.plot import show
 from pygmrt.tiles import download_tiles
+import pycpt
 
-# Get tiles
+# Get tiles for La Réunion Island [west, south, east, north]
 tiles = download_tiles(bbox=[55.05, -21.5, 55.95, -20.7], resolution="low")
+palette = pycpt.read("wiki-france")
 
 # Show with minimal processing
-show(tiles)
+ax = show(tiles, cmap=palette.cmap, norm=palette.norm)
+ax.set_title("La Réunion Island")
+ax.set_xlabel("Longitude")
+ax.set_ylabel("Latitude")
 ```
 
-![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/01_quickstart.png)
 
-## Other examples
+    
+![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/README_files/README_4_0.svg)
+    
 
-The playground notebook [02_playground.ipynb](https://github.com/leonard-seydoux/pygmrt/blob/main/notebooks/02_playground.ipynb) contains more advanced examples, including shaded relief visualizations with `matplotlib` and `cartopy`. The following figures were generated with that notebook.
 
-![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/02_playground_reunion.svg)
 
-![](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/notebooks/02_playground_colombia.svg)
 
-## API reference
 
-The main function of the package is `pygmrt.tiles.download_tiles`, with the signature given below.
+    Text(3.1999999999999957, 0.5, 'Latitude')
+
+
+
+## Advanced visualization with hillshading
+
+For more sophisticated visualizations, you can combine GMRT data with Matplotlib's hillshading capabilities and Cartopy for geographic projections.
+
 
 ```python
-def download_tiles(
-    bbox, 
-    save_directory="./geotiff/",
-    resolution="medium",
-    overwrite=False,
-):
-    """
-    Download tiles and return the rasterio dataset.
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import LightSource
 
-    Parameters
-    ----------
-    bbox : sequence of float
-        Bounding box in WGS84 degrees as ``[west, south, east, north]``.
-    save_directory : str or pathlib.Path
-        Destination directory path where files will be written. Created if
-        needed.
-    resolution : {"low", "medium", "high"}, default "medium"
-        Named resolution level; mapped internally to provider-specific datasets.
-    overwrite : bool, default False
-        If ``False``, reuse existing files. If ``True``, force re-download.
+import pycpt
+from pygmrt.tiles import download_tiles
 
-    Returns
-    -------
-    rasterio.DatasetReader
-        Opened rasterio dataset for the downloaded GeoTIFF. The caller is
-        responsible for closing the dataset.
-
-    Raises
-    ------
-    ValueError
-        If invalid argument combinations or bbox values are provided.
-    PermissionError
-        If the destination directory is not writable.
-    RuntimeError
-        If download attempts ultimately fail.
-"""
+plt.rcParams["savefig.dpi"] = 300
+plt.rcParams["savefig.bbox"] = "tight"
+plt.rcParams["font.size"] = 12
+plt.rcParams["font.sans-serif"] = "Arial"
 ```
 
-## Development
 
-### Setting up development environment
+```python
+# La Réunion bbox [west, south, east, north]
+bbox = [55.05, -21.5, 55.95, -20.7]
 
-```bash
-git clone https://github.com/leonard-seydoux/pygmrt.git
-cd pygmrt
+# Download
+tiles = download_tiles(bbox=bbox, resolution="medium")
 
-# Install in development mode with UV
-uv sync --all-extras
+# Remove NaNs and smooth a bit for better visualization
+topo = tiles.read(1)
+topo[np.isnan(topo)] = 0
+vmax = abs(topo).max()
+bbox = tiles.bounds
+extent = (bbox.left, bbox.right, bbox.bottom, bbox.top)
+palette = pycpt.read("wiki-france")
+palette.interpolate(256)
 
-# Or with pip
-pip install -e ".[dev,docs]"
+# Create figure
+fig = plt.figure(figsize=(7, 7))
+ax = plt.axes(projection=ccrs.PlateCarree())
+
+# Hillshade
+sun = LightSource(azdeg=0, altdeg=20)
+shade = sun.shade(topo, cmap=palette.cmap, norm=palette.norm, vert_exag=0.1)
+ax.imshow(shade, extent=extent, origin="upper", transform=ccrs.PlateCarree())
+
+# Extra map features
+palette.colorbar(ax=ax, label="Elevation (m)", shrink=0.5)
+ax.set_extent(extent)
+gridlines = ax.gridlines(draw_labels=True, color="white", alpha=0.3)
+gridlines.top_labels = False
+gridlines.right_labels = False
+ax.set_title("La Réunion Island with illumination")
+
+plt.show()
 ```
 
-### Running tests
 
-```bash
-# With UV
-uv run pytest
+    
+![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/README_files/README_7_0.svg)
+    
 
-# With pip
-pytest
+
+## Example: Colombia relief
+
+Here's another example showing the topography and bathymetry of Colombia, demonstrating the package's capability to handle larger areas with different color palettes.
+
+
+```python
+from cartopy import feature as cfeature
+
+# Colombia bbox [west, south, east, north]
+bbox = [-80.0, -5.0, -66.0, 13.0]
+
+# Download
+tiles = download_tiles(bbox=bbox, resolution="low")
+
+# Remove NaNs and smooth a bit for better visualization
+topo = tiles.read(1)
+topo[np.isnan(topo)] = 0
+vmax = abs(topo).max()
+bbox = tiles.bounds
+extent = (bbox.left, bbox.right, bbox.bottom, bbox.top)
+palette = pycpt.read("colombia")
+
+# Create figure
+fig = plt.figure(figsize=(7, 7))
+ax = plt.axes(projection=ccrs.PlateCarree())
+
+# Hillshade
+sun = LightSource(azdeg=0, altdeg=60)
+shade = sun.shade(
+    topo,
+    cmap=palette.cmap,
+    norm=palette.norm,
+    vert_exag=0.5,
+    blend_mode="soft",
+)
+ax.imshow(shade, extent=extent, origin="upper", transform=ccrs.PlateCarree())
+
+# Extra map features
+palette.colorbar(ax=ax, label="Elevation (m)", shrink=0.5)
+ax.set_extent(extent)
+ax.coastlines(color="k", linewidth=0.8)
+ax.add_feature(cfeature.BORDERS, edgecolor="k", linewidth=0.8)
+gridlines = ax.gridlines(draw_labels=True, color="white", alpha=0.3)
+gridlines.top_labels = False
+gridlines.right_labels = False
+ax.set_title("Colombia relief")
+
+plt.show()
+```
+
+
+    
+![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/README_files/README_9_0.svg)
+    
+
+
+## API Reference
+
+### `download_tiles(bbox, resolution='medium')`
+
+Download GMRT tiles for a specified bounding box.
+
+**Parameters:**
+- `bbox` (list): Bounding box coordinates as `[west, south, east, north]` in decimal degrees
+- `resolution` (str): Resolution level - `'high'` (1 arc-second), `'medium'` (4 arc-second), or `'low'` (16 arc-second)
+
+**Returns:**
+- `rasterio.DatasetReader`: GeoTIFF dataset that can be used with rasterio functions
+
+**Example:**
+```python
+from pygmrt.tiles import download_tiles
+
+# Download tiles for a region
+tiles = download_tiles(bbox=[-10, 35, 0, 45], resolution="medium")
+
+# Read the data
+elevation = tiles.read(1)
 ```
 
 ## Contributing
@@ -156,9 +233,16 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 
-- [GMRT Synthesis](https://www.gmrt.org/) for providing open access to global bathymetry data
-- [Lamont-Doherty Earth Observatory](https://www.ldeo.columbia.edu/) for maintaining the GMRT database
+- GMRT data is provided by the [Global Multi-Resolution Topography Synthesis](https://www.gmrt.org/)
+- Color palettes from [cpt-city](http://seaviewsensing.com/pub/cpt-city/) via [pycpt-city](https://github.com/leonard-seydoux/pycpt-city)
+
+---
+
+*This README was generated from `readme.ipynb`. To regenerate, run:*
+```bash
+python build_readme.py
+```
