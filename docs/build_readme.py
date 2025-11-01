@@ -90,6 +90,7 @@ def convert_notebook():
     print("Converting notebook to markdown (SVG format)...")
 
     # Convert without executing (uses existing cell outputs with SVG format)
+    # Use --output-dir to specify where the README.md should go
     result = subprocess.run(
         [
             "uv",
@@ -100,7 +101,9 @@ def convert_notebook():
             "markdown",
             NOTEBOOK_PATH,
             "--output",
-            os.path.abspath(README_PATH),
+            "README",
+            "--output-dir",
+            ".",
             '--ExtractOutputPreprocessor.extract_output_types={"image/svg+xml"}',
         ],
         capture_output=True,
@@ -122,11 +125,25 @@ def fix_image_paths():
 
     # Move any README_*.svg files from root to docs/images/
     import glob
+    import shutil
 
     for svg_file in glob.glob("README_*.svg"):
         target = os.path.join(IMAGES_DIR, os.path.basename(svg_file))
-        os.rename(svg_file, target)
+        shutil.move(svg_file, target)
         print(f"  Moved {svg_file} -> {target}")
+    
+    # Also move files from README_files/ folder if it exists
+    if os.path.exists("README_files"):
+        for svg_file in glob.glob("README_files/*.svg"):
+            target = os.path.join(IMAGES_DIR, os.path.basename(svg_file))
+            shutil.move(svg_file, target)
+            print(f"  Moved {svg_file} -> {target}")
+        # Remove empty README_files directory
+        try:
+            os.rmdir("README_files")
+            print("  Removed empty README_files/ directory")
+        except:
+            pass
 
     with open(README_PATH, "r") as f:
         content = f.read()
@@ -142,6 +159,13 @@ def fix_image_paths():
     # Replace any local README_X_Y.svg references with docs/images/
     content = re.sub(
         r"!\[(.*?)\]\((README_\d+_\d+\.svg)\)",
+        r"![\1](docs/images/\2)",
+        content,
+    )
+    
+    # Replace README_files references with docs/images
+    content = re.sub(
+        r"!\[(.*?)\]\(README_files/(README_\d+_\d+\.svg)\)",
         r"![\1](docs/images/\2)",
         content,
     )

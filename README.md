@@ -2,16 +2,28 @@
 
 <img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/logo.png" alt="PyGMRT Logo" width=100/>
 
-### PyGMRT
+# PyGMRT
 
-Downloading bathymetry and topography tiles from the\
+Downloading bathymetry and topography tiles from the<br>
 [Global Multi-Resolution Topography (GMRT)](https://www.gmrt.org/) synthesis.
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-
 </div>
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Plotting Tiles](#plotting-tiles)
+- [Example: Colombia Relief](#example-colombia-relief)
+- [API Reference](#api-reference)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## Features
 
@@ -140,7 +152,7 @@ plt.show()
 
 
     
-![svg](docs/images/README_7_0.svg)
+![svg](docs/images/README_8_0.svg)
     
 
 
@@ -202,7 +214,7 @@ plt.show()
 
 
     
-![svg](docs/images/README_9_0.svg)
+![svg](docs/images/README_10_0.svg)
     
 
 
