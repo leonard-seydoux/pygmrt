@@ -85,7 +85,7 @@ def main():
     # Ensure images directory exists
     images_dir = os.path.join(os.path.dirname(__file__), "images")
     os.makedirs(images_dir, exist_ok=True)
-    
+
     # Save
     logo_path = os.path.join(images_dir, "logo.png")
     fig.savefig(logo_path, transparent=True, bbox_inches="tight", pad_inches=0)

@@ -2,13 +2,16 @@
 
 <img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/logo.png" alt="PyGMRT Logo" width=100/>
 
-# PyGMRT
+<div style="max-width:300px;">
 
-Downloading bathymetry and topography tiles from the<br>
-[Global Multi-Resolution Topography (GMRT)](https://www.gmrt.org/) synthesis.
+<strong style="font-size:150%;">PyGMRT</strong>
+
+Downloading bathymetry and topography tiles from the [Global Multi-Resolution Topography (GMRT)](https://www.gmrt.org/) synthesis.
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+</div>
 
 </div>
 
