@@ -5,12 +5,12 @@ all: logo readme
 
 # Build the logo
 logo:
-	@echo "Building logo..."
+	@echo "\nBuilding logo..."
 	@cd .. && uv run python docs/build_logo.py
 
 # Build README and images from notebook
 readme:
-	@echo "Building README and images from notebook..."
+	@echo "\nBuilding README and images from notebook..."
 	@cd .. && uv run python docs/build_readme.py
 
 # Clean generated files
@@ -19,7 +19,7 @@ clean:
 	@rm -f images/logo.png
 	@rm -f images/README_*.svg
 	@rm -f ../README.md
-	@echo "✓ Cleaned"
+	@echo "Cleaned"
 
 # Show help
 help:

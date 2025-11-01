@@ -1,3 +1,5 @@
+"""Build the project logo and save it to docs/images/logo.png."""
+
 import os
 import matplotlib.pyplot as plt
 
@@ -89,7 +91,7 @@ def main():
     # Save
     logo_path = os.path.join(images_dir, "logo.png")
     fig.savefig(logo_path, transparent=True, bbox_inches="tight", pad_inches=0)
-    print(f"✓ Logo saved to {logo_path}")
+    print(f"Logo saved to {logo_path}")
 
 
 if __name__ == "__main__":

@@ -1,95 +1,69 @@
-#!/usr/bin/env python3
-"""
-Build README.md from readme.ipynb with GitHub URLs for images.
-Run this from the repository root directory.
-"""
+"""Build README.md from readme.ipynb with GitHub URLs for images."""
+
+import glob
 import os
 import re
+import shutil
 import subprocess
-import sys
-import xml.etree.ElementTree as ET
-
-# GitHub repository info
-GITHUB_USER = "leonard-seydoux"
-GITHUB_REPO = "pygmrt"
-GITHUB_BRANCH = "main"
-BASE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}"
 
 # Paths
 DOCS_DIR = "docs"
 NOTEBOOK_PATH = os.path.join(DOCS_DIR, "readme.ipynb")
 README_PATH = "README.md"
 IMAGES_DIR = os.path.join(DOCS_DIR, "images")
+TEMP_FILES_DIR = "README_files"
 
 
-def parse_vscode_notebook():
-    """Parse VSCode XML notebook format and convert to markdown."""
-    print("Parsing VSCode notebook...")
-
+def get_github_repo_info():
+    """Extract GitHub repository information from git remote."""
     try:
-        # Read the notebook file
-        with open("README.ipynb", "r") as f:
-            content = f.read()
+        # Get remote URL
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        remote_url = result.stdout.strip()
 
-        # Parse cells from VSCode XML format
-        markdown_content = []
-        lines = content.split("\n")
+        # Parse GitHub URL (supports both HTTPS and SSH)
+        # HTTPS: https://github.com/user/repo.git
+        # SSH: git@github.com:user/repo.git
+        pattern = r"github\.com[:/](.+)/(.+?)(?:\.git)?$"
+        match = re.search(pattern, remote_url)
 
-        in_cell = False
-        cell_content = []
-        cell_language = None
+        if not match:
+            raise ValueError(f"Could not parse GitHub URL: {remote_url}")
 
-        for line in lines:
-            # Detect cell start
-            if "<VSCode.Cell" in line:
-                in_cell = True
-                # Extract language
-                if 'language="markdown"' in line:
-                    cell_language = "markdown"
-                elif 'language="python"' in line:
-                    cell_language = "python"
-                continue
+        user = match.group(1)
+        repo = match.group(2)
 
-            # Detect cell end
-            if "</VSCode.Cell>" in line:
-                if cell_content:
-                    if cell_language == "markdown":
-                        # Add markdown directly
-                        markdown_content.append("\n".join(cell_content))
-                    elif cell_language == "python":
-                        # Add code block
-                        markdown_content.append("```python")
-                        markdown_content.append("\n".join(cell_content))
-                        markdown_content.append("```")
-                    markdown_content.append("")  # Empty line between cells
+        # Get current branch
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        branch = result.stdout.strip()
 
-                # Reset for next cell
-                in_cell = False
-                cell_content = []
-                cell_language = None
-                continue
+        return user, repo, branch
 
-            # Collect cell content
-            if in_cell:
-                cell_content.append(line)
-
-        # Write to README.md
-        with open("README.md", "w") as f:
-            f.write("\n".join(markdown_content))
-
-        print("✓ Notebook converted")
-        return True
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Failed to get git info: {e}")
 
 
-def convert_notebook():
-    """Convert notebook to markdown."""
+def get_github_raw_url():
+    """Get the GitHub raw content URL for the current repository."""
+    user, repo, branch = get_github_repo_info()
+    return f"https://raw.githubusercontent.com/{user}/{repo}/{branch}"
+
+
+def convert_notebook_to_markdown():
+    """Convert notebook to markdown and use GitHub URLs."""
     print("Converting notebook to markdown...")
 
-    # Convert without executing (uses existing cell outputs with SVG format)
+    # Run jupyter nbconvert to convert notebook
     result = subprocess.run(
         [
             "uv",
@@ -98,113 +72,130 @@ def convert_notebook():
             "nbconvert",
             "--to",
             "markdown",
-            NOTEBOOK_PATH,
             "--output",
             "README",
             "--output-dir",
             ".",
+            NOTEBOOK_PATH,
             '--ExtractOutputPreprocessor.extract_output_types={"image/svg+xml"}',
         ],
         capture_output=True,
         text=True,
     )
+
+    # Summary
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         return False
-    print("✓ Notebook converted")
+    print("Notebook converted to markdown")
 
-    # Now manually embed the images
-    embed_images_in_readme()
+    # Move images and update URLs
+    move_images_and_update_urls()
 
     return True
 
 
-def embed_images_in_readme():
-    """Embed image files as base64 data URIs in the README."""
-    import base64
-    import glob
+def move_images_and_update_urls():
+    """Move images from temp directory to docs/images and update URLs."""
 
-    with open(README_PATH, "r") as f:
-        content = f.read()
-
-    # Find all SVG files in README_files/ directory
-    svg_files = glob.glob("README_files/*.svg")
-
-    if not svg_files:
-        print("  No SVG files found to embed")
+    if not os.path.exists(TEMP_FILES_DIR):
+        print("No images to move")
         return
 
+    # Find all SVG files generated by nbconvert
+    svg_files = glob.glob(os.path.join(TEMP_FILES_DIR, "*.svg"))
+
+    if not svg_files:
+        shutil.rmtree(TEMP_FILES_DIR)
+        print("No SVG files found")
+        return
+
+    print(f"Moving {len(svg_files)} images...")
+
+    # Read README content
+    with open(README_PATH) as f:
+        readme_content = f.read()
+
+    # Create images directory
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+
+    # Get GitHub URL
+    github_raw_url = get_github_raw_url()
+
+    # Move each image and update its URL in the README
     for svg_file in svg_files:
-        # Read SVG file
-        with open(svg_file, "rb") as f:
-            svg_data = f.read()
+        filename = os.path.basename(svg_file)
+        destination = os.path.join(IMAGES_DIR, filename)
 
-        # Convert to base64
-        b64_data = base64.b64encode(svg_data).decode("utf-8")
-        data_uri = f"data:image/svg+xml;base64,{b64_data}"
+        # Move file
+        shutil.move(svg_file, destination)
 
-        # Replace file reference with data URI
-        # Pattern: ![svg](README_files/README_X_Y.svg)
-        relative_path = svg_file.replace(
-            "\\", "/"
-        )  # Normalize path separators
-        content = content.replace(f"]({relative_path})", f"]({data_uri})")
-        print(f"  Embedded {svg_file}")
+        # Update markdown reference from local path to GitHub URL
+        local_path = f"{TEMP_FILES_DIR}/{filename}"
+        github_url = f"{github_raw_url}/docs/images/{filename}"
+        readme_content = readme_content.replace(local_path, github_url)
 
+        print(f"  - {filename}")
+
+    # Write updated README
     with open(README_PATH, "w") as f:
-        f.write(content)
+        f.write(readme_content)
 
-    print("✓ Images embedded as data URIs")
+    # Remove temp directory
+    shutil.rmtree(TEMP_FILES_DIR)
+    print("Images moved and URLs updated")
 
 
-def check_embedded_images():
-    """Check if images are embedded in the README."""
-    print("Checking embedded images...")
+def verify_images():
+    """Verify that all image URLs in README point to existing files."""
+    with open(README_PATH) as f:
+        readme_content = f.read()
 
-    with open(README_PATH, "r") as f:
-        content = f.read()
+    # Get GitHub URL
+    github_raw_url = get_github_raw_url()
 
-    # Count embedded SVG images (data URIs)
-    embedded_svg = content.count("data:image/svg+xml;base64,")
+    # Find all GitHub image URLs in README
+    url_pattern = re.escape(github_raw_url) + r"/docs/images/([\w_]+\.svg)"
+    image_filenames = re.findall(url_pattern, readme_content)
 
-    # Clean up any leftover files/directories
-    import glob
-    import shutil
-
-    # Remove any README_*.svg files that might have been created
-    for svg_file in glob.glob("README_*.svg"):
-        os.remove(svg_file)
-        print(f"  Removed leftover {svg_file}")
-
-    # Remove README_files directory if it exists
-    if os.path.exists("README_files"):
-        shutil.rmtree("README_files")
-        print("  Removed README_files/ directory")
-
-    if embedded_svg > 0:
-        print(f"✓ Found {embedded_svg} embedded SVG image(s)")
-        return True
-    else:
-        print("⚠ No embedded images found")
+    if not image_filenames:
+        print("Warning: No image URLs found in README")
         return False
+
+    print(f"Found {len(image_filenames)} image URLs")
+
+    # Check that all referenced files exist
+    missing = []
+    for filename in image_filenames:
+        file_path = os.path.join(IMAGES_DIR, filename)
+        if not os.path.exists(file_path):
+            missing.append(filename)
+
+    if missing:
+        print(f"Error: Missing images: {', '.join(missing)}")
+        return False
+
+    print(f"All image files exist")
+    return True
 
 
 def main():
-    """Main build process."""
-    # Make sure we're in the repository root
+    """Build README.md from notebook."""
+
+    # Verify we're in the repository root
     if not os.path.exists(DOCS_DIR):
-        print(
-            f"❌ Error: {DOCS_DIR} directory not found. Run this script from the repository root."
-        )
+        print(f"Error: {DOCS_DIR}/ not found. Run from repository root.")
         return 1
 
-    if convert_notebook():
-        check_embedded_images()
-        print("\n✅ README.md built successfully!")
-        print("📦 Images are embedded as base64 data URIs (self-contained)")
-    else:
-        print("\n❌ Build failed")
+    # Convert notebook and process images
+    if not convert_notebook_to_markdown():
+        print("\nBuild failed")
         return 1
+
+    # Verify images are correctly referenced
+    verify_images()
+
+    print("README.md built successfully")
     return 0
 
 
