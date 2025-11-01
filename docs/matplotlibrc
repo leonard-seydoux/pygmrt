@@ -1,0 +1,10 @@
+figure.facecolor: none
+savefig.transparent: True
+axes.edgecolor: 0.5
+axes.titlecolor: 0.5
+xtick.labelcolor: 0.5
+ytick.labelcolor: 0.5
+xtick.color: 0.5
+text.color: 0.5
+ytick.color: 0.5
+axes.labelcolor: 0.5

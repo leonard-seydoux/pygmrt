@@ -59,11 +59,25 @@ def get_github_raw_url():
     return f"https://raw.githubusercontent.com/{user}/{repo}/{branch}"
 
 
+def clean_existing_images():
+    """Remove existing generated images, keeping only the logo."""
+    if not os.path.exists(IMAGES_DIR):
+        return
+    
+    print("Cleaning old images...")
+    for image_file in glob.glob(os.path.join(IMAGES_DIR, "*.svg")):
+        os.remove(image_file)
+        print(f"  Removed {os.path.basename(image_file)}")
+
+
 def convert_notebook_to_markdown():
-    """Convert notebook to markdown and use GitHub URLs."""
+    """Convert notebook to markdown with execution and use GitHub URLs."""
     print("Converting notebook to markdown...")
 
-    # Run jupyter nbconvert to convert notebook
+    # Clean old images first
+    clean_existing_images()
+
+    # Run jupyter nbconvert with execution
     result = subprocess.run(
         [
             "uv",
@@ -76,6 +90,7 @@ def convert_notebook_to_markdown():
             "README",
             "--output-dir",
             ".",
+            "--execute",
             NOTEBOOK_PATH,
             '--ExtractOutputPreprocessor.extract_output_types={"image/svg+xml"}',
         ],
@@ -83,11 +98,10 @@ def convert_notebook_to_markdown():
         text=True,
     )
 
-    # Summary
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         return False
-    print("Notebook converted to markdown")
+    print("Notebook executed and converted to markdown")
 
     # Move images and update URLs
     move_images_and_update_urls()

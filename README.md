@@ -145,7 +145,10 @@ ax.imshow(shade, extent=extent, origin="upper", transform=ccrs.PlateCarree())
 # Extra map features
 palette.colorbar(ax=ax, label="Elevation (m)", shrink=0.5)
 ax.set_extent(extent)
-gridlines = ax.gridlines(draw_labels=True, color="white", alpha=0.3)
+gridlines = ax.gridlines(
+    draw_labels=True,
+    color="white",
+)
 gridlines.top_labels = False
 gridlines.right_labels = False
 ax.set_title("La Réunion Island with illumination")
@@ -175,6 +178,8 @@ from cartopy import feature as cfeature
 from matplotlib.colors import LightSource
 from pygmrt.tiles import download_tiles
 
+plt.style.use("matplotlibrc")
+
 # Colombia bbox [west, south, east, north]
 bbox = [-80.0, -5.0, -66.0, 13.0]
 
@@ -191,6 +196,7 @@ palette = pycpt.read("colombia")
 
 # Create figure
 fig = plt.figure(figsize=(7, 7))
+fig.patch.set_facecolor("#00000000")
 ax = plt.axes(projection=ccrs.PlateCarree())
 
 # Hillshade
