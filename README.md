@@ -13,9 +13,10 @@ Downloading bathymetry and topography tiles from the<br>
 ![Last Release](https://img.shields.io/github/v/release/leonard-seydoux/pygmrt)
 ![Last Commit](https://img.shields.io/github/last-commit/leonard-seydoux/pygmrt)
 
+
 </div>
 
-## Table of Contents
+## Contents
 
 - [Features](#features)
 - [Installation](#installation)
@@ -30,23 +31,23 @@ Downloading bathymetry and topography tiles from the<br>
 
 ## Features
 
-- **Simple API**: Single function to download GMRT tiles
-- **Multiple resolutions**: High (1 arc-second), medium (4 arc-second), low (16 arc-second)
-- **GeoTIFF format**: Direct integration with rasterio and other geospatial tools
-- **Antimeridian support**: Handles bounding boxes that cross the 180° longitude
-- **No API key required**: Direct access to GMRT GridServer
+PyGMRT provides a simple Python interface to access bathymetry and topography data from the [Global Multi-Resolution Topography](https://www.gmrt.org/) (GMRT) synthesis. The package handles all the complexity of downloading and processing geographic tiles, letting you focus on your analysis.
+
+The core functionality centers around a single function that downloads tiles for any region on Earth. You can choose between three resolution levels: high resolution at 1 arc-second (about 30 meters at the equator), medium resolution at 4 arc-seconds, or low resolution at 16 arc-seconds. All data comes in GeoTIFF format, which works directly with [rasterio](https://rasterio.readthedocs.io/) and other geospatial tools.
+
+The package automatically handles regions that cross the antimeridian (the 180° longitude line). This is often painful when working with global data, but PyGMRT takes care of it transparently. Since the package connects directly to the GMRT GridServer, you don't need API keys or authentication.
 
 ## Installation
 
-### Using UV (recommended)
+We recommend using [UV](https://uv.readthedocs.io/), a modern Python package installer that handles dependencies efficiently. Traditional pip works just as well.
 
-If you don't have UV installed, follow the instructions at [uv](https://uv.readthedocs.io/en/latest/). Then install PyGMRT from PyPI:
+If you're using UV, add PyGMRT to your project:
 
 ```bash
 uv add pygmrt
 ```
 
-Or install from source
+Or install from the latest development version:
 
 ```bash
 git clone https://github.com/leonard-seydoux/pygmrt.git
@@ -54,10 +55,7 @@ cd pygmrt
 uv sync
 ```
 
-
-### Using pip
-
-Similarly, you can either install from PyPI:
+For pip users, install directly from PyPI:
 
 ```bash
 pip install pygmrt
@@ -73,7 +71,7 @@ pip install -e .
 
 ## Quick start
 
-The simplest way to download and visualize GMRT tiles is with a single function call. 
+The simplest way to download topography data is with a single function call. Here we'll download data for La Réunion Island, a volcanic island in the Indian Ocean. The bounding box is specified as `[west, south, east, north]` in degrees.
 
 
 ```python
@@ -99,9 +97,11 @@ print(f"Tiles array shape: {tiles.shape}")
     Tiles array shape: (783, 821)
 
 
-## Example: la Réunion Island Relief
+## Example: La Réunion Island Relief
 
-For more sophisticated visualizations, you can combine GMRT data with Matplotlib's hillshading capabilities and Cartopy for geographic projections.
+La Réunion Island is home to one of the world's most active volcanoes. Its dramatic topography makes an excellent demonstration of PyGMRT's capabilities combined with matplotlib's hillshading.
+
+In this example, we download medium-resolution data and apply illumination effects to create a 3D relief map. We use [pycpt-city](https://github.com/leonard-seydoux/pycpt-city) for the color palette and [Cartopy](https://scitools.org.uk/cartopy/) to handle the geographic projection.
 
 
 ```python
@@ -159,9 +159,11 @@ plt.show()
     
 
 
-## Example: Colombia relief
+## Example: Colombia Relief
 
-Here's another example showing the topography and bathymetry of Colombia, demonstrating the package's capability to handle larger areas with different color palettes.
+Colombia offers a fascinating study in topographic diversity. From the Andes mountains to the Pacific and Caribbean coasts, and the Amazon basin in the southeast. This example shows how PyGMRT handles larger geographic areas.
+
+We use low resolution here since we're covering a substantial area. The custom color palette works well for showing both underwater features and mountain ranges. Notice how the hillshading brings out the texture of the seafloor and the terrestrial topography.
 
 
 ```python
@@ -223,6 +225,8 @@ plt.show()
 
 ## API Reference
 
+The `download_tiles` function is the main entry point. Here's the complete documentation:
+
 
 ```python
 help(download_tiles)
@@ -264,54 +268,51 @@ help(download_tiles)
 
 ## Development
 
-### Setting up development environment
+To contribute or experiment with the code, start by cloning the repository:
 
 ```bash
 git clone https://github.com/leonard-seydoux/pygmrt.git
 cd pygmrt
 
-# Install in development mode with UV
+# Install with UV (includes all development dependencies)
 uv sync --all-extras
 
-# Or with pip
+# Or use pip
 pip install -e ".[dev,docs]"
 ```
 
-### Running tests (future)
+Run the test suite to verify everything works:
 
 ```bash
 # With UV
 uv run pytest
 
-# With pip
+# Or directly
 pytest
 ```
 
-### Building documentation
-
-This README and images were generated from `docs/readme.ipynb`. To regenerate everything:
+This documentation is generated from `docs/readme.ipynb`. To rebuild it:
 
 ```bash
-# Build both logo and README with images
-cd docs && make
-
-# Or build individually
-make logo    # Build logo only
-make readme  # Build README and images only
+cd docs
+make              # Build logo and README
+make logo         # Generate logo only
+make readme       # Convert notebook to README
 ```
+
+The build process handles image generation and ensures URLs point to GitHub for proper display on PyPI.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+PyGMRT is open source and welcomes contributions! Found a bug or have an idea? Open an issue or submit a pull request on [GitHub](https://github.com/leonard-seydoux/pygmrt).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- [GMRT Synthesis](https://www.gmrt.org/) for providing open access to global bathymetry data
-- [Lamont-Doherty Earth Observatory](https://www.ldeo.columbia.edu/) for maintaining the GMRT database
-- Color palettes from [cpt-city](http://seaviewsensing.com/pub/cpt-city/) via [pycpt-city](https://github.com/leonard-seydoux/pycpt-city)
+This package builds on the work of several organizations and projects:
 
-
+- The [Global Multi-Resolution Topography Synthesis](https://www.gmrt.org/) by [Lamont-Doherty Earth Observatory](https://www.ldeo.columbia.edu/) for providing free access to global bathymetry data.
+- The [cpt-city](http://seaviewsensing.com/pub/cpt-city/) project for beautiful color palettes, accessible via [pycpt-city](https://github.com/leonard-seydoux/pycpt-city).

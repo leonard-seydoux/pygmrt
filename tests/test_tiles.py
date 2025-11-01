@@ -44,7 +44,7 @@ class TestValidateBbox:
         """Test bbox with longitude out of range."""
         with pytest.raises(ValueError, match="longitude values must be"):
             _validate_bbox([200.0, 20.0, 30.0, 40.0])
-        
+
         with pytest.raises(ValueError, match="longitude values must be"):
             _validate_bbox([10.0, 20.0, -200.0, 40.0])
 
@@ -52,7 +52,7 @@ class TestValidateBbox:
         """Test bbox with latitude out of range."""
         with pytest.raises(ValueError, match="latitude values must be"):
             _validate_bbox([10.0, 100.0, 30.0, 40.0])
-        
+
         with pytest.raises(ValueError, match="latitude values must be"):
             _validate_bbox([10.0, 20.0, 30.0, -100.0])
 
@@ -63,7 +63,9 @@ class TestValidateBbox:
 
     def test_bbox_with_negative_values(self):
         """Test valid bbox with negative coordinates."""
-        west, south, east, north = _validate_bbox([-120.0, -50.0, -100.0, -30.0])
+        west, south, east, north = _validate_bbox(
+            [-120.0, -50.0, -100.0, -30.0]
+        )
         assert west == -120.0
         assert south == -50.0
         assert east == -100.0
@@ -106,16 +108,22 @@ class TestSaveFilename:
 
     def test_filename_with_resolution(self):
         """Test filename with different resolutions."""
-        filename_low = _save_filename("gmrt", (10.0, 20.0, 30.0, 40.0), resolution="low")
-        filename_high = _save_filename("gmrt", (10.0, 20.0, 30.0, 40.0), resolution="high")
-        
+        filename_low = _save_filename(
+            "gmrt", (10.0, 20.0, 30.0, 40.0), resolution="low"
+        )
+        filename_high = _save_filename(
+            "gmrt", (10.0, 20.0, 30.0, 40.0), resolution="high"
+        )
+
         assert "low" in filename_low
         assert "high" in filename_high
         assert filename_low != filename_high
 
     def test_filename_with_custom_extension(self):
         """Test filename with custom extension."""
-        filename = _save_filename("gmrt", (10.0, 20.0, 30.0, 40.0), extension="geotiff")
+        filename = _save_filename(
+            "gmrt", (10.0, 20.0, 30.0, 40.0), extension="geotiff"
+        )
         assert filename.endswith(".geotiff")
 
     def test_filename_with_negative_coords(self):
@@ -213,14 +221,14 @@ class TestDownloadTiles:
             mock_dataset.crs = "EPSG:4326"
             mock_dataset.shape = (100, 100)
             mock_raster_open.return_value = mock_dataset
-            
+
             # Download tiles
             result = download_tiles(
                 bbox=[10.0, 20.0, 30.0, 40.0],
                 save_directory=tmpdir,
                 resolution="low",
             )
-            
+
             assert result is not None
             mock_download.assert_called_once()
 
@@ -231,13 +239,15 @@ class TestDownloadTiles:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_dataset = MagicMock()
             mock_raster_open.return_value = mock_dataset
-            
+
             # Create an existing file
             save_path = Path(tmpdir)
-            filename = _save_filename("gmrt", (10.0, 20.0, 30.0, 40.0), resolution="low")
+            filename = _save_filename(
+                "gmrt", (10.0, 20.0, 30.0, 40.0), resolution="low"
+            )
             existing_file = save_path / filename
             existing_file.touch()
-            
+
             # Download without overwrite - should not download
             download_tiles(
                 bbox=[10.0, 20.0, 30.0, 40.0],
@@ -266,7 +276,7 @@ class TestGetPath:
             # Create a test file
             test_file = Path(tmpdir) / "test.tif"
             test_file.touch()
-            
+
             # Create result with entry
             entry = ManifestEntry(
                 path=str(test_file),
@@ -275,7 +285,7 @@ class TestGetPath:
                 status="created",
             )
             result = DownloadResult(entries=[entry])
-            
+
             path = get_path(result)
             assert path == test_file
 
@@ -284,7 +294,7 @@ class TestGetPath:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.tiff"
             test_file.touch()
-            
+
             entry = ManifestEntry(
                 path=str(test_file),
                 coverage={"west": 0, "south": 0, "east": 1, "north": 1},
@@ -292,14 +302,14 @@ class TestGetPath:
                 status="reused",
             )
             result = DownloadResult(entries=[entry])
-            
+
             path = get_path(result)
             assert path == test_file
 
     def test_get_path_no_valid_entry(self):
         """Test get_path with no valid entries."""
         result = DownloadResult(entries=[])
-        
+
         with pytest.raises(RuntimeError, match="No GeoTIFF found"):
             get_path(result)
 
@@ -312,7 +322,7 @@ class TestGetPath:
             status="created",
         )
         result = DownloadResult(entries=[entry])
-        
+
         with pytest.raises(RuntimeError, match="No GeoTIFF found"):
             get_path(result)
 
@@ -329,14 +339,14 @@ class TestIntegrationScenarios:
             mock_dataset.name = "la_reunion.tif"
             mock_dataset.crs = "EPSG:4326"
             mock_raster_open.return_value = mock_dataset
-            
+
             # La Réunion bbox
             result = download_tiles(
                 bbox=[55.05, -21.5, 55.95, -20.7],
                 save_directory=tmpdir,
                 resolution="low",
             )
-            
+
             assert result is not None
             mock_download.assert_called_once()
 
@@ -347,14 +357,14 @@ class TestIntegrationScenarios:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_dataset = MagicMock()
             mock_raster_open.return_value = mock_dataset
-            
+
             # Bbox crossing antimeridian
             result = download_tiles(
                 bbox=[170.0, -10.0, -170.0, 10.0],
                 save_directory=tmpdir,
                 resolution="low",
             )
-            
+
             assert result is not None
 
     @patch("pygmrt.tiles._download_stream")
@@ -364,9 +374,9 @@ class TestIntegrationScenarios:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_dataset = MagicMock()
             mock_raster_open.return_value = mock_dataset
-            
+
             bbox = [10.0, 20.0, 30.0, 40.0]
-            
+
             for resolution in ["low", "medium", "high"]:
                 result = download_tiles(
                     bbox=bbox,
