@@ -8,7 +8,10 @@ Downloading bathymetry and topography tiles from the<br>
 [Global Multi-Resolution Topography (GMRT)](https://www.gmrt.org/) synthesis.
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![PyPI_Downloads](https://img.shields.io/pypi/dd/pygmrt)
+![LICENSE](https://img.shields.io/pypi/l/pygmrt)
+![Last Release](https://img.shields.io/github/v/release/leonard-seydoux/pygmrt)
+![Last Commit](https://img.shields.io/github/last-commit/leonard-seydoux/pygmrt)
 
 </div>
 
