@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/logo/logo.png" alt="PyGMRT Logo" width=100/>
+<img src="https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/logo.png" alt="PyGMRT Logo" width=100/>
 
 # PyGMRT
 
@@ -139,7 +139,7 @@ plt.show()
 
 
     
-![svg](README_files/README_7_0.svg)
+![svg](docs/images/README_7_0.svg)
     
 
 
@@ -201,7 +201,7 @@ plt.show()
 
 
     
-![svg](README_files/README_9_0.svg)
+![svg](docs/images/README_9_0.svg)
     
 
 
@@ -273,9 +273,15 @@ pytest
 
 ### Building documentation
 
-This README was generated from `readme.ipynb`. To regenerate, run:
+This README and images were generated from `docs/readme.ipynb`. To regenerate everything:
+
 ```bash
-python build_readme.py
+# Build both logo and README with images
+cd docs && make
+
+# Or build individually
+make logo    # Build logo only
+make readme  # Build README and images only
 ```
 
 ## Contributing

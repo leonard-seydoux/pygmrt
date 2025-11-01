@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 
 python_logo_colors = {
@@ -81,10 +82,14 @@ def main():
     ax.set_ylim(-0.1, 1.1)
     ax.axis("off")
 
+    # Ensure images directory exists
+    images_dir = os.path.join(os.path.dirname(__file__), "images")
+    os.makedirs(images_dir, exist_ok=True)
+    
     # Save
-    fig.savefig(
-        "logo.png", transparent=True, bbox_inches="tight", pad_inches=0
-    )
+    logo_path = os.path.join(images_dir, "logo.png")
+    fig.savefig(logo_path, transparent=True, bbox_inches="tight", pad_inches=0)
+    print(f"✓ Logo saved to {logo_path}")
 
 
 if __name__ == "__main__":
