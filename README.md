@@ -145,10 +145,7 @@ ax.imshow(shade, extent=extent, origin="upper", transform=ccrs.PlateCarree())
 # Extra map features
 palette.colorbar(ax=ax, label="Elevation (m)", shrink=0.5)
 ax.set_extent(extent)
-gridlines = ax.gridlines(
-    draw_labels=True,
-    color="white",
-)
+gridlines = ax.gridlines(draw_labels=True, color="white")
 gridlines.top_labels = False
 gridlines.right_labels = False
 ax.set_title("La Réunion Island with illumination")

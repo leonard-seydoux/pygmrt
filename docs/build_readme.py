@@ -63,7 +63,7 @@ def clean_existing_images():
     """Remove existing generated images, keeping only the logo."""
     if not os.path.exists(IMAGES_DIR):
         return
-    
+
     print("Cleaning old images...")
     for image_file in glob.glob(os.path.join(IMAGES_DIR, "*.svg")):
         os.remove(image_file)
