@@ -86,11 +86,10 @@ def parse_vscode_notebook():
 
 
 def convert_notebook():
-    """Convert notebook to markdown with SVG output."""
-    print("Converting notebook to markdown (SVG format)...")
+    """Convert notebook to markdown."""
+    print("Converting notebook to markdown...")
 
     # Convert without executing (uses existing cell outputs with SVG format)
-    # Use --output-dir to specify where the README.md should go
     result = subprocess.run(
         [
             "uv",
@@ -113,75 +112,81 @@ def convert_notebook():
         print(f"Error: {result.stderr}")
         return False
     print("✓ Notebook converted")
+
+    # Now manually embed the images
+    embed_images_in_readme()
+
     return True
 
 
-def fix_image_paths():
-    """Fix image paths and move images to docs/images folder."""
-    print("Fixing image paths...")
-
-    # Create images directory if it doesn't exist
-    os.makedirs(IMAGES_DIR, exist_ok=True)
-
-    # Move any README_*.svg files from root to docs/images/
+def embed_images_in_readme():
+    """Embed image files as base64 data URIs in the README."""
+    import base64
     import glob
-    import shutil
-
-    for svg_file in glob.glob("README_*.svg"):
-        target = os.path.join(IMAGES_DIR, os.path.basename(svg_file))
-        shutil.move(svg_file, target)
-        print(f"  Moved {svg_file} -> {target}")
-    
-    # Also move files from README_files/ folder if it exists
-    if os.path.exists("README_files"):
-        for svg_file in glob.glob("README_files/*.svg"):
-            target = os.path.join(IMAGES_DIR, os.path.basename(svg_file))
-            shutil.move(svg_file, target)
-            print(f"  Moved {svg_file} -> {target}")
-        # Remove empty README_files directory
-        try:
-            os.rmdir("README_files")
-            print("  Removed empty README_files/ directory")
-        except:
-            pass
 
     with open(README_PATH, "r") as f:
         content = f.read()
 
-    # Replace absolute paths with relative paths
-    # Pattern: ![svg](/absolute/path/README_X_Y.svg) -> ![svg](docs/images/README_X_Y.svg)
-    content = re.sub(
-        r"!\[(.*?)\]\(/[^\)]*/(README_\d+_\d+\.svg)\)",
-        r"![\1](docs/images/\2)",
-        content,
-    )
+    # Find all SVG files in README_files/ directory
+    svg_files = glob.glob("README_files/*.svg")
 
-    # Replace any local README_X_Y.svg references with docs/images/
-    content = re.sub(
-        r"!\[(.*?)\]\((README_\d+_\d+\.svg)\)",
-        r"![\1](docs/images/\2)",
-        content,
-    )
-    
-    # Replace README_files references with docs/images
-    content = re.sub(
-        r"!\[(.*?)\]\(README_files/(README_\d+_\d+\.svg)\)",
-        r"![\1](docs/images/\2)",
-        content,
-    )
+    if not svg_files:
+        print("  No SVG files found to embed")
+        return
+
+    for svg_file in svg_files:
+        # Read SVG file
+        with open(svg_file, "rb") as f:
+            svg_data = f.read()
+
+        # Convert to base64
+        b64_data = base64.b64encode(svg_data).decode("utf-8")
+        data_uri = f"data:image/svg+xml;base64,{b64_data}"
+
+        # Replace file reference with data URI
+        # Pattern: ![svg](README_files/README_X_Y.svg)
+        relative_path = svg_file.replace(
+            "\\", "/"
+        )  # Normalize path separators
+        content = content.replace(f"]({relative_path})", f"]({data_uri})")
+        print(f"  Embedded {svg_file}")
 
     with open(README_PATH, "w") as f:
         f.write(content)
 
-    # Count SVG image references
-    svg_refs = re.findall(r"!\[.*?\]\(docs/images/.*?\.svg\)", content)
+    print("✓ Images embedded as data URIs")
 
-    if svg_refs:
-        print(f"✓ Fixed {len(svg_refs)} SVG image path(s)")
+
+def check_embedded_images():
+    """Check if images are embedded in the README."""
+    print("Checking embedded images...")
+
+    with open(README_PATH, "r") as f:
+        content = f.read()
+
+    # Count embedded SVG images (data URIs)
+    embedded_svg = content.count("data:image/svg+xml;base64,")
+
+    # Clean up any leftover files/directories
+    import glob
+    import shutil
+
+    # Remove any README_*.svg files that might have been created
+    for svg_file in glob.glob("README_*.svg"):
+        os.remove(svg_file)
+        print(f"  Removed leftover {svg_file}")
+
+    # Remove README_files directory if it exists
+    if os.path.exists("README_files"):
+        shutil.rmtree("README_files")
+        print("  Removed README_files/ directory")
+
+    if embedded_svg > 0:
+        print(f"✓ Found {embedded_svg} embedded SVG image(s)")
+        return True
     else:
-        print("⚠ No SVG images found")
-
-    return len(svg_refs) > 0
+        print("⚠ No embedded images found")
+        return False
 
 
 def main():
@@ -194,9 +199,9 @@ def main():
         return 1
 
     if convert_notebook():
-        fix_image_paths()
+        check_embedded_images()
         print("\n✅ README.md built successfully!")
-        print(f"📦 SVG images saved in {IMAGES_DIR}/")
+        print("📦 Images are embedded as base64 data URIs (self-contained)")
     else:
         print("\n❌ Build failed")
         return 1
