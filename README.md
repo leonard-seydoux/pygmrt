@@ -92,6 +92,9 @@ print(f"CRS: {tiles.crs}")
 print(f"Tiles array shape: {tiles.shape}")
 ```
 
+    Downloading https://www.gmrt.org/services/GridServer?format=geotiff&west=55.05&east=55.95&south=-21.5&north=-20.7&resolution=low to geotiff/gmrt_low_55.050_-21.500_55.950_-20.700.tif ...
+
+
     Downloaded tiles at: ./geotiff/gmrt_low_55.050_-21.500_55.950_-20.700.tif
     CRS: EPSG:4326
     Tiles array shape: (783, 821)
@@ -153,9 +156,12 @@ ax.set_title("La Réunion Island with illumination")
 plt.show()
 ```
 
+    Downloading https://www.gmrt.org/services/GridServer?format=geotiff&west=55.05&east=55.95&south=-21.5&north=-20.7&resolution=med to geotiff/gmrt_medium_55.050_-21.500_55.950_-20.700.tif ...
+
+
 
     
-![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/README_8_0.svg)
+![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/README_8_1.svg)
     
 
 
@@ -174,8 +180,6 @@ import pycpt
 from cartopy import feature as cfeature
 from matplotlib.colors import LightSource
 from pygmrt.tiles import download_tiles
-
-plt.style.use("matplotlibrc")
 
 # Colombia bbox [west, south, east, north]
 bbox = [-80.0, -5.0, -66.0, 13.0]
@@ -220,9 +224,12 @@ ax.set_title("Colombia relief")
 plt.show()
 ```
 
+    Downloading https://www.gmrt.org/services/GridServer?format=geotiff&west=-80.0&east=-66.0&south=-5.0&north=13.0&resolution=low to geotiff/gmrt_low_-80.000_-5.000_-66.000_13.000.tif ...
+
+
 
     
-![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/README_10_0.svg)
+![svg](https://raw.githubusercontent.com/leonard-seydoux/pygmrt/main/docs/images/README_10_1.svg)
     
 
 
